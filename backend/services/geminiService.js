@@ -91,3 +91,58 @@ function extractImageFromResponse(response) {
 
   return { imageBase64, mimeType, text };
 }
+
+/**
+ * Görseli analiz ederek SerpAPI/Google Lens araması için en doğru e-ticaret arama terimini (query) oluşturur.
+ * @param {string} imageBase64 - Base64 formatında görsel
+ * @param {string} mimeType - Görselin MIME tipi
+ * @returns {Promise<string>} - Arama terimi (örnek: "Siyah baskılı Rammstein tişört")
+ */
+export async function generateSearchQueryFromImage(imageBase64, mimeType = 'image/png') {
+  console.log(`🤖 Gemini ile görselden e-ticaret arama sorgusu üretiliyor...`);
+  
+  try {
+    const ai = getClient();
+    
+    // Base64 formatını temizle (eğer data:image/png;base64, ile başlıyorsa)
+    const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            { inlineData: { mimeType, data: cleanBase64 } },
+            { 
+              text: `Sen profesyonel bir e-ticaret ürün uzmanı ve görsel analiz uzmanısın. 
+              Bu görseldeki ana ürünü son derece BİLİMSEL ve SPESİFİK ayrıntılarıyla analiz et. Genel ve yüzeysel tanımlamalardan (sadece "dolma kalem", "tişört", "ayakkabı" gibi) kesinlikle kaçın!
+              Ürünün e-ticaret sitelerinde ve arama motorlarında birebir eşini veya en özel modelini bulabilmek için maksimum düzeyde SPESİFİK, TEKNİK ve AYRINTILI bir arama sorgusu (yaklaşık 8-15 kelime) oluştur.
+              
+              Sorguyu oluştururken şu kurallara kesinlikle uy:
+              1. Genel terimler yerine profesyonel terimler kullan: Dolma kalem yerine "fountain pen with converter/cartridge", Tişört yerine "heavyweight cotton graphic streetwear tee", Spor ayakkabı yerine "retro chunky lifestyle running sneaker".
+              2. Ürünün tasarım dilini ve estetiğini belirt: "vintage classic", "minimalist luxury", "gothic/punk", "modern sleek", "industrial".
+              3. Malzeme ve doku detaylarını spesifik olarak yaz: "highly polished resin", "matte brushed aluminum", "knurled grip", "suede overlays", "premium leather".
+              4. Benzersiz görsel imza veya mekanik unsurları ekle: "engraved dual-tone 18k gold nib", "screw-on cap", "gold plated arrow clip", "split sole", "contrast stitching".
+              5. Varsa üzerindeki metinleri, yazıları veya özel logoları/sembolleri tam olarak dahil et.
+              
+              Örnek Arama Sorguları:
+              - "burgundy resin luxury fountain pen gold plated trims engraved arrow clip hooded nib"
+              - "heavyweight black cotton drop-shoulder graphic tee metal band print distressed edge"
+              - "retro chunky white running sneaker suede leather overlays gum outsole split tongue"
+              
+              Yanıtında sadece ve sadece bu spesifik arama sorgusu yer alsın. Açıklama, tırnak işareti, başlık, kod blokları veya ekstra hiçbir şey yazma.`
+            },
+          ],
+        },
+      ],
+    });
+
+    const query = response.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+    console.log(`🔍 Üretilen Arama Sorgusu: "${query}"`);
+    return query;
+  } catch (error) {
+    console.error('❌ Arama sorgusu üretme hatası:', error.message);
+    return ''; // Hata durumunda boş döner
+  }
+}

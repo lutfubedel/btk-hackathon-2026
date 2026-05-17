@@ -15,6 +15,11 @@ export default function App() {
   const [uploadedImageUrl, setUploadedImageUrl] = useState(null);
   const [error, setError] = useState(null);
 
+  // AI Görsel Üretim Durumları (State Lifting)
+  const [generatedImage, setGeneratedImage] = useState(null);
+  const [promptHistory, setPromptHistory] = useState([]);
+  const [aiMessage, setAiMessage] = useState(null);
+
   // Baslama Ekranindan -> Prompt Ekranina Gecis
   const handleNavigateToPrompt = useCallback(() => {
     setScreen('prompt');
@@ -29,6 +34,13 @@ export default function App() {
     // Anında gösterim için local preview oluştur
     const localPreviewUrl = URL.createObjectURL(file);
     setUploadedImageUrl(localPreviewUrl);
+
+    // AI ile düzenleme uyumluluğu için yüklenen dosyayı arka planda base64'e dönüştür
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setGeneratedImage(reader.result);
+    };
+    reader.readAsDataURL(file);
 
     try {
       const formData = new FormData();
@@ -61,7 +73,9 @@ export default function App() {
     setSearchResults(null);
     
     // Anında gösterim için base64 preview oluştur
-    setUploadedImageUrl(`data:${mimeType};base64,${base64Data}`);
+    const fullBase64Url = `data:${mimeType};base64,${base64Data}`;
+    setUploadedImageUrl(fullBase64Url);
+    setGeneratedImage(fullBase64Url); // State senkronizasyonu için
 
     try {
       const response = await fetch('/api/search-by-base64', {
@@ -90,11 +104,21 @@ export default function App() {
     }
   }, []);
 
-  // Yeni Arama -> Baslama Ekranina Donus
+  // Yeni Arama -> Baslama Ekranina Donus (State'leri tamamen sıfırlar)
   const handleNewSearch = useCallback(() => {
     setScreen('baslama');
     setSearchResults(null);
     setUploadedImageUrl(null);
+    setError(null);
+    setGeneratedImage(null);
+    setPromptHistory([]);
+    setAiMessage(null);
+  }, []);
+
+  // Görseli AI ile düzenlemek üzere Prompt ekranına geri dönüş (State'leri sıfırlamaz)
+  const handleEditImage = useCallback(() => {
+    setScreen('prompt');
+    setSearchResults(null);
     setError(null);
   }, []);
 
@@ -129,6 +153,12 @@ export default function App() {
         {screen === 'prompt' && (
           <PromptEkrani 
             onSearchGeneratedImage={handleGeneratedImageSearch} 
+            currentImage={generatedImage}
+            setCurrentImage={setGeneratedImage}
+            promptHistory={promptHistory}
+            setPromptHistory={setPromptHistory}
+            aiMessage={aiMessage}
+            setAiMessage={setAiMessage}
           />
         )}
 
@@ -141,13 +171,10 @@ export default function App() {
             uploadedImage={uploadedImageUrl}
             searchResults={searchResults}
             onNewSearch={handleNewSearch}
+            onEditImage={handleEditImage}
           />
         )}
       </main>
-
-      <footer className="app__footer text-center py-6 border-t border-slate-200 bg-white/50 backdrop-blur-sm text-sm text-slate-500 font-light mt-auto relative z-10 w-full">
-        VISEARCH AI &copy; 2026 — Google Lens &amp; Gemini &amp; Cloudflare R2 ile güçlendirilmiştir
-      </footer>
 
       {/* Şeffaf scrollbar için CSS Inject */}
       <style dangerouslySetInnerHTML={{__html: `

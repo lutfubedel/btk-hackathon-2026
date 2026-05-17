@@ -1,11 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
 import { ArrowRight, Hexagon, Layers, Search } from 'lucide-react';
 
-export default function PromptEkrani({ onSearchGeneratedImage }) {
+export default function PromptEkrani({ 
+  onSearchGeneratedImage,
+  currentImage,
+  setCurrentImage,
+  promptHistory,
+  setPromptHistory,
+  aiMessage,
+  setAiMessage
+}) {
   const [prompt, setPrompt] = useState('');
-  const [promptHistory, setPromptHistory] = useState([]);
-  const [currentImage, setCurrentImage] = useState(null);
-  const [aiMessage, setAiMessage] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState(null);
   

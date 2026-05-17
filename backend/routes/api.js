@@ -2,7 +2,7 @@ import { Router } from 'express';
 import upload from '../middleware/upload.js';
 import { uploadImage, uploadBase64Image } from '../services/r2Service.js';
 import { searchByImage } from '../services/serpApiService.js';
-import { generateImage, editImage } from '../services/geminiService.js';
+import { generateImage, editImage, generateSearchQueryFromImage } from '../services/geminiService.js';
 
 const router = Router();
 
@@ -24,8 +24,12 @@ router.post('/search', upload.single('image'), async (req, res) => {
     // 1. Görseli Cloudflare R2'ye yükle
     const { publicUrl } = await uploadImage(req.file.buffer, req.file.mimetype);
 
-    // 2. SerpAPI Google Lens ile ara
-    const results = await searchByImage(publicUrl);
+    // Görseli analiz edip e-ticaret arama sorgusu üret
+    const base64Image = req.file.buffer.toString('base64');
+    const searchQuery = await generateSearchQueryFromImage(base64Image, req.file.mimetype);
+
+    // 2. SerpAPI Google Lens ile ara (auto_crop ve q filtrelemesiyle)
+    const results = await searchByImage(publicUrl, searchQuery);
 
     // 3. Sonuçları döndür
     return res.json({
@@ -72,8 +76,11 @@ router.post('/search-by-base64', async (req, res) => {
     // 1. Base64 görseli R2'ye yükle
     const { publicUrl } = await uploadBase64Image(imageBase64, mimeType || 'image/png');
 
-    // 2. SerpAPI Google Lens ile ara
-    const results = await searchByImage(publicUrl);
+    // Görseli analiz edip e-ticaret arama sorgusu üret
+    const searchQuery = await generateSearchQueryFromImage(imageBase64, mimeType || 'image/png');
+
+    // 2. SerpAPI Google Lens ile ara (auto_crop ve q filtrelemesiyle)
+    const results = await searchByImage(publicUrl, searchQuery);
 
     // 3. Sonuçları döndür
     return res.json({

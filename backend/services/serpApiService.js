@@ -3,13 +3,14 @@ import { getJson } from 'serpapi';
 /**
  * Web sayfasının HTML'ini (sadece ilk 300KB) indirerek içindeki fiyat meta etiketlerini arar.
  * İşlemi hızlı tutmak için 4 saniyelik timeout uygulanır.
+ * NOT: Dinamik JS ile yüklenen siteler (Trendyol, Hepsiburada vb.) bu yöntemle çekilemez.
  */
 async function fetchPriceFromWeb(url) {
   if (!url || url === '#') return null;
   try {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), 4000);
-    
+
     const response = await fetch(url, {
       signal: controller.signal,
       headers: {
@@ -18,17 +19,16 @@ async function fetchPriceFromWeb(url) {
         'Accept-Language': 'tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7',
       }
     });
-    
+
     clearTimeout(id);
-    
     if (!response.ok) return null;
-    
+
     // Sadece ilk 300KB'i alarak performansı artır
     const reader = response.body.getReader();
     const decoder = new TextDecoder('utf-8');
     let html = '';
     let bytesRead = 0;
-    
+
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
@@ -39,60 +39,116 @@ async function fetchPriceFromWeb(url) {
         break;
       }
     }
-    
-    // Fiyat araması (Regex)
+
     // 1. Meta og:price:amount veya product:price:amount
     const amountMatch = html.match(/<meta\s+(?:property|name)="[^"]*price:amount"\s+content="([^"]+)"/i);
     const currencyMatch = html.match(/<meta\s+(?:property|name)="[^"]*price:currency"\s+content="([^"]+)"/i);
-    
+
     // 2. JSON-LD içinde price arama
-    const jsonLdMatch = html.match(/"price"\s*:\s*"?(\d+(?:\.\d{1,2})?)"?/i);
+    const jsonLdMatch = html.match(/"price"\s*:\s*"?(\d+(?:[.,]\d{1,2})?)"?/i);
     const jsonLdCurrencyMatch = html.match(/"priceCurrency"\s*:\s*"([^"]+)"/i);
 
-    if (amountMatch && amountMatch[1]) {
-      const currency = (currencyMatch && currencyMatch[1]) ? currencyMatch[1] : 'TL';
+    if (amountMatch?.[1]) {
+      const currency = currencyMatch?.[1] ?? 'TL';
       return `${amountMatch[1]} ${currency}`;
-    } else if (jsonLdMatch && jsonLdMatch[1]) {
-      const currency = (jsonLdCurrencyMatch && jsonLdCurrencyMatch[1]) ? jsonLdCurrencyMatch[1] : 'TL';
+    }
+
+    if (jsonLdMatch?.[1]) {
+      const currency = jsonLdCurrencyMatch?.[1] ?? 'TL';
       return `${jsonLdMatch[1]} ${currency}`;
     }
 
     return null;
-  } catch (err) {
-    // Timeout veya ulaşılmayan siteler için sessizce iptal et
+  } catch {
     return null;
   }
 }
 
-// Basit bir string hash fonksiyonu (Simülasyon için)
-function hashString(str) {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = (hash << 5) - hash + str.charCodeAt(i);
-    hash |= 0; // 32bit integer
+/**
+ * SerpAPI'den gelen ham price nesnesini güvenli şekilde string'e çevirir.
+ * Fiyat bilgisi yoksa null döner.
+ */
+function parseSerpPrice(priceField) {
+  if (!priceField) return null;
+
+  if (typeof priceField === 'string') {
+    const cleaned = priceField.replace(/\*/g, '').trim();
+    return cleaned.length > 0 ? cleaned : null;
   }
-  return Math.abs(hash);
+
+  if (priceField.value) {
+    const cleaned = priceField.value.replace(/\*/g, '').trim();
+    return cleaned.length > 0 ? cleaned : null;
+  }
+
+  if (priceField.extracted_value != null) {
+    const currency = priceField.currency ?? 'TL';
+    return `${priceField.extracted_value} ${currency}`;
+  }
+
+  return null;
 }
 
-// Başlığa göre gerçekçi simüle fiyat üretici
-function generateSimulatedPrice(title) {
-  const hash = hashString(title || 'ürün');
-  
-  // 349 ile 2899 arasında sabit ve gerçekçi bir fiyat hesapla
-  const basePrice = 349 + (hash % 2550);
-  
-  // E-ticaret hissi için .99 veya ,00 küsuratları
-  const is99 = (hash % 3) !== 0;
-  return `${basePrice}${is99 ? '.99' : ',00'} TL`;
+const NON_ECOMMERCE_DOMAINS = [
+  'pinterest.',
+  'facebook.com',
+  'fb.com',
+  'instagram.com',
+  'twitter.com',
+  'x.com',
+  'tiktok.com',
+  'youtube.com',
+  'youtu.be',
+  't.me',
+  'telegram.org',
+  'linkedin.com',
+  'reddit.com',
+  'tumblr.com',
+  'behance.net',
+  'dribbble.com',
+  'flickr.com',
+  'unsplash.com',
+  'shutterstock.com',
+  'istockphoto.com',
+  'freepik.com',
+  'dreamstime.com',
+  'alamy.com',
+  'canva.com',
+  'medium.com',
+  'blogspot.com',
+  'wordpress.com'
+];
+
+/**
+ * Verilen URL'in e-ticaret dışı (sosyal medya, blog vb.) bir site olup olmadığını kontrol eder.
+ */
+function isEcommerceSite(link) {
+  if (!link || link === '#') return false;
+  try {
+    const url = new URL(link);
+    const hostname = url.hostname.toLowerCase();
+    
+    // E-ticaret dışı sitelerden biriyle eşleşiyorsa false döner
+    return !NON_ECOMMERCE_DOMAINS.some(domain => hostname.includes(domain));
+  } catch {
+    return false;
+  }
 }
 
 /**
- * SerpAPI Google Lens ile görsel arama yapar
- * @param {string} imageUrl - Aranacak görselin public URL'i
- * @returns {Promise<Array>} - visual_matches sonuç dizisi
+ * SerpAPI Google Lens ile görsel arama yapar.
+ *
+ * Fiyat öncelik sırası:
+ *   1. SerpAPI'nin döndürdüğü fiyat (en güvenilir)
+ *   2. Ürün sayfasından HTML scraping ile çekilen fiyat
+ *   3. Fiyat hâlâ null ise ürün listeden çıkarılır — asla gösterilmez
+ *
+ * @param {string} imageUrl    - Aranacak görselin public URL'i
+ * @param {string} searchQuery - Sonuçları filtrelemek için arama terimi (opsiyonel)
+ * @returns {Promise<Array>}   - Yalnızca fiyatı doğrulanmış ürün listesi
  */
-export async function searchByImage(imageUrl) {
-  console.log(`🔍 Google Lens araması başlatılıyor: ${imageUrl}`);
+export async function searchByImage(imageUrl, searchQuery = '') {
+  console.log(`🔍 Google Lens araması başlatılıyor: ${imageUrl} (Sorgu: "${searchQuery}")`);
 
   try {
     const response = await getJson({
@@ -101,71 +157,64 @@ export async function searchByImage(imageUrl) {
       api_key: process.env.SERPAPI_API_KEY,
       hl: 'tr',
       country: 'tr',
+      auto_crop: true,
+      ...(searchQuery ? { q: searchQuery } : {})
     });
 
-    // visual_matches dizisini çıkar
-    const visualMatches = response.visual_matches || [];
-
+    const visualMatches = response.visual_matches ?? [];
     console.log(`✅ ${visualMatches.length} görsel eşleşme bulundu`);
 
-    // İlk 100 sonucu al ve normalize et
-    const results = visualMatches.slice(0, 100).map((match, index) => {
-      // Fiyat nesnesini daha güvenli ayrıştır
-      let parsedPrice = 'Fiyat Yok';
-      if (match.price) {
-        if (typeof match.price === 'string') {
-          parsedPrice = match.price.replace(/\*/g, '').trim();
-        } else if (match.price.value) {
-          parsedPrice = match.price.value.replace(/\*/g, '').trim();
-        } else if (match.price.extracted_value) {
-          const currency = match.price.currency || 'TL';
-          parsedPrice = `${match.price.extracted_value} ${currency}`.replace(/\*/g, '').trim();
-        }
-      }
+    // E-ticaret dışı platformları (Facebook, Instagram, Pinterest vb.) en baştan ele
+    const ecommerceMatches = visualMatches.filter(match => isEcommerceSite(match.link));
+    console.log(`🧹 Filtreleme sonrası: ${ecommerceMatches.length} e-ticaret eşleşmesi kaldı`);
 
-      return {
-        position: index + 1,
-        title: match.title || 'Başlık yok',
-        link: match.link || '#',
-        source: match.source || 'Bilinmeyen kaynak',
-        sourceIcon: match.source_icon || null,
-        thumbnail: match.thumbnail || null,
-        image: match.image || match.thumbnail || null,
-        price: parsedPrice,
-        inStock: match.in_stock ?? null,
-        rating: match.rating || null,
-        reviews: match.reviews || null,
-      };
-    });
+    // İlk 100 sonucu normalize et
+    const results = ecommerceMatches.slice(0, 100).map((match, index) => ({
+      position: index + 1,
+      title: match.title || 'Başlık yok',
+      link: match.link || '#',
+      source: match.source || 'Bilinmeyen kaynak',
+      sourceIcon: match.source_icon ?? null,
+      thumbnail: match.thumbnail ?? null,
+      image: match.image ?? match.thumbnail ?? null,
+      price: parseSerpPrice(match.price), // null olabilir
+      inStock: match.in_stock ?? null,
+      rating: match.rating ?? null,
+      reviews: match.reviews ?? null,
+    }));
 
-    // --- EKSİK FİYATLARI WEB SCRAPING İLE ÇEK VEYA SİMÜLE ET ---
-    // Performans için sadece ilk 40 sonuçtaki eksik fiyatları eşzamanlı (concurrent) çekiyoruz
-    const resultsToScrape = results.slice(0, 40).filter(r => r.price === 'Fiyat Yok');
-    
-    if (resultsToScrape.length > 0) {
-      console.log(`⏱️ Fiyatı eksik olan ${resultsToScrape.length} ürün için web kazıması başlatılıyor...`);
-      
-      await Promise.all(resultsToScrape.map(async (item) => {
-        const scrapedPrice = await fetchPriceFromWeb(item.link);
-        if (scrapedPrice) {
-          item.price = scrapedPrice.replace(/\*/g, '').trim();
-        } else {
-          // 3. Katman (Fallback): Bot Koruması/SPA nedeniyle ulaşılamayanlara fiyat simüle et
-          item.price = generateSimulatedPrice(item.title);
-        }
-      }));
-      
-      console.log(`✅ Web kazıması (ve Simülasyon Fallback'leri) tamamlandı.`);
+    // --- 2. KATMAN: SerpAPI fiyatı null olan ilk 40 sonuç için scraping ---
+    const toScrape = results.slice(0, 40).filter(r => r.price === null);
+
+    if (toScrape.length > 0) {
+      console.log(`⏱️ SerpAPI fiyatı eksik ${toScrape.length} ürün için web kazıması başlatılıyor...`);
+
+      await Promise.all(
+        toScrape.map(async (item) => {
+          const scrapedPrice = await fetchPriceFromWeb(item.link);
+          if (scrapedPrice) {
+            item.price = scrapedPrice.replace(/\*/g, '').trim();
+            console.log(`💰 Fiyat çekildi [${item.source}]: ${item.price}`);
+          } else {
+            console.warn(`⚠️ Fiyat çekilemedi, listeden çıkarılıyor: ${item.link}`);
+          }
+        })
+      );
     }
 
-    // İlk 40 dışındaki veya her ihtimale karşı "Fiyat Yok" kalanları simüle et
-    results.forEach(item => {
-      if (item.price === 'Fiyat Yok') {
-        item.price = generateSimulatedPrice(item.title);
-      }
+    // --- FİLTRELEME: Fiyatı null olan tüm ürünleri listeden çıkar ---
+    const pricedResults = results.filter(r => r.price !== null);
+
+    // Pozisyonları yeniden numaralandır
+    pricedResults.forEach((item, index) => {
+      item.position = index + 1;
     });
 
-    return results;
+    // Özet log
+    const removed = results.length - pricedResults.length;
+    console.log(`📊 Özet → Toplam: ${results.length} | Fiyatlı: ${pricedResults.length} | Çıkarılan: ${removed}`);
+
+    return pricedResults;
   } catch (error) {
     console.error('❌ SerpAPI hatası:', error.message);
     throw new Error(`Google Lens araması başarısız: ${error.message}`);

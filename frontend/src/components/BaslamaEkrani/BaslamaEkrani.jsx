@@ -110,52 +110,54 @@ export default function BaslamaEkrani({ onNavigateToPrompt, onFileSearch }) {
       </div>
 
       {/* Drop Zone */}
-      <div
-        className={`uploader__dropzone ${isDragging ? 'uploader__dropzone--active' : ''}`}
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onClick={() => fileInputRef.current?.click()}
-        id="drop-zone"
-      >
-        <div className="uploader__dropzone-content">
-          <p className="uploader__dropzone-title">
-            Görselinizi Tasarlayın
-          </p>
-          <p className="uploader__dropzone-subtitle">
-            veya dosya seçmek için tıklayın
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', width: '240px', margin: '0 auto' }}>
-            <button 
-              type="button" 
-              className="uploader__browse-btn" 
-              id="browse-button"
-              style={{ width: '100%', justifyContent: 'center' }}
-              onClick={(e) => {
-                e.stopPropagation();
-                onNavigateToPrompt();
-              }}
-            >
-              Tasarlamaya Başla
-            </button>
-            <button 
-              type="button" 
-              className="uploader__browse-btn" 
-              id="add-product-button"
-              style={{ width: '100%', justifyContent: 'center' }}
-              onClick={(e) => {
-                e.stopPropagation();
-                fileInputRef.current?.click();
-              }}
-            >
-              Ürün Ekle
-            </button>
+      {!selectedFile && (
+        <div
+          className={`uploader__dropzone ${isDragging ? 'uploader__dropzone--active' : ''}`}
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onClick={() => fileInputRef.current?.click()}
+          id="drop-zone"
+        >
+          <div className="uploader__dropzone-content">
+            <p className="uploader__dropzone-title">
+              Görselinizi Tasarlayın
+            </p>
+            <p className="uploader__dropzone-subtitle">
+              veya dosya seçmek için tıklayın
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', width: '240px', margin: '0 auto' }}>
+              <button 
+                type="button" 
+                className="uploader__browse-btn" 
+                id="browse-button"
+                style={{ width: '100%', justifyContent: 'center' }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onNavigateToPrompt();
+                }}
+              >
+                Tasarlamaya Başla
+              </button>
+              <button 
+                type="button" 
+                className="uploader__browse-btn" 
+                id="add-product-button"
+                style={{ width: '100%', justifyContent: 'center' }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  fileInputRef.current?.click();
+                }}
+              >
+                Ürün Ekle
+              </button>
+            </div>
+            <p className="uploader__formats">
+              JPG, PNG, WebP, GIF • Maks. 10MB
+            </p>
           </div>
-          <p className="uploader__formats">
-            JPG, PNG, WebP, GIF • Maks. 10MB
-          </p>
         </div>
-      </div>
+      )}
 
       <input
         ref={fileInputRef}
@@ -201,14 +203,24 @@ export default function BaslamaEkrani({ onNavigateToPrompt, onFileSearch }) {
             />
           </div>
 
-          {/* Search Button */}
-          <button
-            className="uploader__search-btn"
-            onClick={handleSearch}
-            id="search-button"
-          >
-            Benzer Ürünleri Ara
-          </button>
+          {/* Action Buttons */}
+          <div className="uploader__actions">
+            <button
+              className="uploader__search-btn"
+              onClick={handleSearch}
+              id="search-button"
+            >
+              Benzer Ürünleri Ara
+            </button>
+            <button
+              type="button"
+              className="uploader__cancel-btn"
+              onClick={(e) => { e.stopPropagation(); removeFile(); }}
+              id="cancel-button"
+            >
+              İptal Et
+            </button>
+          </div>
         </div>
       )}
     </section>
