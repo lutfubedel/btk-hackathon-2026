@@ -2,7 +2,7 @@ import { Router } from 'express';
 import upload from '../middleware/upload.js';
 import { uploadImage, uploadBase64Image } from '../services/r2Service.js';
 import { searchByImage } from '../services/serpApiService.js';
-import { generateImage, editImage, generateSearchQueryFromImage } from '../services/geminiService.js';
+import { generateImage, editImage, generateSearchQueryFromImage, chatAndEditImage } from '../services/geminiService.js';
 
 const router = Router();
 
@@ -139,6 +139,49 @@ router.post('/generate', async (req, res) => {
     return res.status(500).json({
       success: false,
       error: error.message || 'Görsel üretimi sırasında bir hata oluştu.',
+    });
+  }
+});
+
+/**
+ * POST /api/chat-edit
+ * Chatbot: Kullanıcı mesajı + mevcut görsel → Güncellenmiş görsel + Türkçe cevap
+ * Body: { message: string, imageBase64?: string, mimeType?: string }
+ */
+router.post('/chat-edit', async (req, res) => {
+  try {
+    const { message, imageBase64, mimeType } = req.body;
+
+    if (!message) {
+      return res.status(400).json({
+        success: false,
+        error: 'Lütfen bir mesaj gönderin.',
+      });
+    }
+
+    if (!imageBase64) {
+      return res.status(400).json({
+        success: false,
+        error: 'Düzenlenecek bir görsel bulunamadı.',
+      });
+    }
+
+    console.log(`\n💬 Chat-Edit isteği: "${message.substring(0, 60)}..."`);
+
+    const result = await chatAndEditImage(message, imageBase64, mimeType || 'image/png');
+
+    return res.json({
+      success: true,
+      imageBase64: result.imageBase64,
+      mimeType: result.mimeType,
+      reply: result.text,
+    });
+
+  } catch (error) {
+    console.error('❌ Chat-Edit hatası:', error.message);
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Bir hata oluştu.',
     });
   }
 });

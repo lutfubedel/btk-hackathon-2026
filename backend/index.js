@@ -33,8 +33,11 @@ app.get('/health', (req, res) => {
 });
 
 // Sunucuyu başlat
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`\n🚀 BTK Hackathon Backend`);
   console.log(`   Sunucu çalışıyor: http://localhost:${PORT}`);
   console.log(`   Sağlık kontrolü:  http://localhost:${PORT}/health\n`);
 });
+
+server.keepAliveTimeout = 65000;
+server.headersTimeout = 66000;

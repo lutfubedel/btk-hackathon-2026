@@ -2,6 +2,7 @@ import { GoogleGenAI } from '@google/genai';
 
 let aiClient = null;
 
+// Gemini API bağlantısını başlat
 function getClient() {
   if (aiClient) return aiClient;
 
@@ -13,11 +14,7 @@ function getClient() {
   return aiClient;
 }
 
-/**
- * Gemini API ile sıfırdan görsel üretir
- * @param {string} prompt - Görsel üretim açıklaması
- * @returns {Promise<{imageBase64: string, mimeType: string, text?: string}>}
- */
+// Gemini API ile sıfırdan görsel üretir
 export async function generateImage(prompt) {
   console.log(`🎨 Gemini görsel üretimi başlatılıyor: "${prompt.substring(0, 60)}..."`);
 
@@ -31,13 +28,7 @@ export async function generateImage(prompt) {
   return extractImageFromResponse(response);
 }
 
-/**
- * Gemini API ile mevcut görseli prompt'a göre düzenler
- * @param {string} prompt - Düzenleme açıklaması
- * @param {string} imageBase64 - Mevcut görselin base64 verisi
- * @param {string} mimeType - Görselin MIME tipi
- * @returns {Promise<{imageBase64: string, mimeType: string, text?: string}>}
- */
+// Gemini API ile mevcut görseli prompt'a göre düzenler
 export async function editImage(prompt, imageBase64, mimeType = 'image/png') {
   console.log(`✏️ Gemini görsel düzenleme başlatılıyor: "${prompt.substring(0, 60)}..."`);
 
@@ -60,8 +51,64 @@ export async function editImage(prompt, imageBase64, mimeType = 'image/png') {
 }
 
 /**
- * Gemini yanıtından görsel verisini çıkarır
+ * Chatbot entegrasyonu: Kullanıcı mesajına göre görseli düzenler ve
+ * hem güncellenmiş görseli hem de Türkçe dostane bir cevap döndürür.
  */
+export async function chatAndEditImage(userMessage, imageBase64, mimeType = 'image/png') {
+  console.log(`💬 Chat+Edit isteği: "${userMessage.substring(0, 60)}..."`);
+
+  const ai = getClient();
+  let result = { imageBase64: null, mimeType: null, text: null };
+
+  try {
+    console.log(`🎨 Görsel düzenleniyor...`);
+    const imageResponse = await ai.models.generateContent({
+      model: 'gemini-2.5-flash-image',
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            { inlineData: { mimeType, data: imageBase64 } },
+            { text: userMessage },
+          ],
+        },
+      ],
+    });
+    
+    const imgResult = extractImageFromResponse(imageResponse);
+    result.imageBase64 = imgResult.imageBase64;
+    result.mimeType = imgResult.mimeType;
+  } catch (err) {
+    console.error('🎨 Görsel üretilirken hata:', err.message);
+  }
+
+  try {
+    console.log(`💬 Metin yanıtı üretiliyor...`);
+    const textResponse = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            { text: `Sen bir AI tasarım asistanısın. Kullanıcı şu isteği yaptı: "${userMessage}". Bu değişikliği uyguladığını belirten, Türkçe, samimi ve 1-2 cümlelik kısa bir mesaj yaz. Emoji kullanabilirsin.` },
+          ],
+        },
+      ],
+    });
+    result.text = textResponse.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+  } catch (err) {
+    console.error('💬 Metin yanıtı üretilirken hata:', err.message);
+  }
+
+  // Eğer metin üretilemediyse varsayılan bir yanıt ekle
+  if (!result.text) {
+    result.text = `✅ "${userMessage}" isteğin uygulandı! Görselin güncellendi.`;
+  }
+
+  return result;
+}
+
+// Gemini yanıtından görsel verisini çıkarır
 function extractImageFromResponse(response) {
   let text = null;
   let imageBase64 = null;
@@ -92,12 +139,7 @@ function extractImageFromResponse(response) {
   return { imageBase64, mimeType, text };
 }
 
-/**
- * Görseli analiz ederek SerpAPI/Google Lens araması için en doğru e-ticaret arama terimini (query) oluşturur.
- * @param {string} imageBase64 - Base64 formatında görsel
- * @param {string} mimeType - Görselin MIME tipi
- * @returns {Promise<string>} - Arama terimi (örnek: "Siyah baskılı Rammstein tişört")
- */
+// Görseli analiz ederek SerpAPI/Google Lens araması için en doğru e-ticaret arama terimini (query) oluşturur.
 export async function generateSearchQueryFromImage(imageBase64, mimeType = 'image/png') {
   console.log(`🤖 Gemini ile görselden e-ticaret arama sorgusu üretiliyor...`);
   
