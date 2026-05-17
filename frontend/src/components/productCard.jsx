@@ -14,12 +14,12 @@ export default function ProductCard({ product, index }) {
     <a 
       href={product.link || '#'}
       onClick={handleClick}
-      className="group bg-white/40 backdrop-blur-xl rounded-[2rem] p-3 border border-white/60 hover:-translate-y-2 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] transition-all duration-500 ease-out flex flex-col"
+      className="group bg-white/40 backdrop-blur-xl rounded-2rem p-3 border border-white/60 hover:-translate-y-2 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] transition-all duration-500 ease-out flex flex-col"
       style={{ transitionDelay: `${Math.min(index * 50, 1500)}ms` }}
       title={product.title}
     >
       {/* Ürün Resmi */}
-      <div className="relative w-full aspect-square rounded-[1.5rem] overflow-hidden mb-4 bg-slate-100 shadow-inner">
+      <div className="relative w-full aspect-square rounded-1.5rem overflow-hidden mb-4 bg-slate-100 shadow-inner">
         <img 
           src={product.image || product.thumbnail} 
           alt={product.title}

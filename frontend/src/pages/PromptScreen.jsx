@@ -1,25 +1,22 @@
 import { useState, useRef, useEffect } from 'react';
 import { ArrowRight, Hexagon, Layers, Search } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
-export default function PromptEkrani({ 
+export default function PromptScreen({ 
   onSearchGeneratedImage,
   currentImage,
   setCurrentImage,
   promptHistory,
-  setPromptHistory,
-  aiMessage,
-  setAiMessage
+  setPromptHistory
 }) {
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [error, setError] = useState(null);
   
   const messagesEndRef = useRef(null);
 
-  // Otomatik mesaj kaydırma
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [promptHistory, aiMessage]);
+  }, [promptHistory]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -29,8 +26,6 @@ export default function PromptEkrani({
     const currentPrompt = prompt;
     setPrompt('');
     setIsGenerating(true);
-    setError(null);
-    setAiMessage(null);
     
     try {
       // AI Gorsel Uretim API Cagirisi
@@ -57,14 +52,15 @@ export default function PromptEkrani({
 
       if (data.imageBase64) {
         setCurrentImage(`data:${data.mimeType || 'image/png'};base64,${data.imageBase64}`);
+        toast.success('Görsel başarıyla oluşturuldu!');
       } else if (data.text) {
-        setAiMessage(data.text);
+        toast.success(data.text, { icon: '🤖' });
       } else {
         throw new Error('Gemini geçerli bir yanıt dönmedi.');
       }
     } catch (err) {
       console.error('Generation Error:', err);
-      setError(err.message);
+      toast.error(err.message || 'Görsel üretilirken bir hata oluştu.');
     } finally {
       setIsGenerating(false);
     }
@@ -85,7 +81,7 @@ export default function PromptEkrani({
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div className="absolute transition-all duration-1000 ease-in-out bg-orange-400/10 rounded-full blur-[100px] w-[45vw] h-[45vw] top-[5%] left-[25%]" />
         <div className="absolute transition-all duration-1000 ease-in-out bg-slate-400/10 rounded-full blur-[120px] w-[55vw] h-[55vw] bottom-[-10%] right-[-10%]" />
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMCwwLDAsMC4wMikiLz48L3N2Zz4=')] [mask-image:radial-gradient(ellipse_70%_70%_at_50%_50%,#000_10%,transparent_100%)] opacity-100" />
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMCwwLDAsMC4wMikiLz48L3N2Zz4=')] mask-[radial-gradient(ellipse_70%_70%_at_50%_50%,#000_10%,transparent_100%)] opacity-100" />
       </div>
 
       <div className="w-full flex flex-col items-center transition-all duration-700 ease-out z-10 max-w-4xl mx-auto px-4">
@@ -94,7 +90,7 @@ export default function PromptEkrani({
         {!currentImage && !isGenerating && (
           <div className="text-center transition-all duration-700 ease-in-out flex flex-col items-center opacity-100 scale-100 mb-12 translate-y-0">
             <h1 className="text-4xl md:text-[3.5rem] font-extrabold text-slate-900 mb-6 tracking-tighter leading-tight">
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-orange-600">Aklınızdaki tasarımı</span>
+              <span className="text-transparent bg-clip-text bg-linear-to-r from-orange-500 to-orange-600">Aklınızdaki tasarımı</span>
               <br className="hidden md:block" />
               kelimelere dökün.
             </h1>
@@ -145,35 +141,15 @@ export default function PromptEkrani({
           </div>
         )}
 
-        {/* Hata Mesajı */}
-        {error && (
-          <div className="w-full max-w-md mx-auto mb-4 p-4 bg-red-50 text-red-600 rounded-2xl border border-red-100 text-center text-sm font-medium">
-            {error}
-          </div>
-        )}
-
         {/* Sohbet / Mesaj Alanı ve Input */}
         <div className={`w-full flex flex-col transition-all duration-700 ease-in-out max-w-xl mx-auto`}>
           
           {/* Birleştirilmiş Prompt Görünümü */}
           {promptHistory.length > 0 && (
             <div className="mb-5 flex justify-center w-full animate-in fade-in slide-in-from-bottom-2 duration-500">
-              <p className="text-sm font-medium text-slate-700 bg-white/60 backdrop-blur-xl px-5 py-3 rounded-2xl border border-white/80 shadow-sm text-center max-w-full break-words leading-relaxed">
+              <p className="text-sm font-medium text-slate-700 bg-white/60 backdrop-blur-xl px-5 py-3 rounded-2xl border border-white/80 shadow-sm text-center max-w-full wrap-break-words leading-relaxed">
                 {promptHistory.join(' + ')}
               </p>
-            </div>
-          )}
-
-          {/* AI Metin Yanıtı / Asistan Balonu */}
-          {aiMessage && (
-            <div className="mb-5 flex justify-center w-full animate-in fade-in slide-in-from-bottom-2 duration-500">
-              <div className="bg-orange-50/80 backdrop-blur-xl px-6 py-4 rounded-[2rem] border border-orange-100 shadow-sm text-slate-700 text-sm max-w-md text-center leading-relaxed">
-                <div className="font-semibold text-orange-600 mb-1 flex items-center justify-center gap-1.5 text-xs tracking-wider uppercase">
-                  <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
-                  Tasarım Asistanı
-                </div>
-                <p className="font-light">{aiMessage}</p>
-              </div>
             </div>
           )}
 

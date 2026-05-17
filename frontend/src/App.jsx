@@ -1,10 +1,10 @@
 import { useState, useCallback } from 'react';
-import Header from './components/shared/Header/Header';
-import BaslamaEkrani from './components/BaslamaEkrani/BaslamaEkrani';
-import PromptEkrani from './components/PromptEkrani/PromptEkrani';
-import YuklemeEkrani from './components/YuklemeEkrani/YuklemeEkrani';
-import SonuclarEkrani from './components/SonuclarEkrani/SonuclarEkrani';
-import './App.css';
+import Header from './components/header';
+import PromptEkrani from './pages/PromptScreen';
+import BaslamaEkrani from './pages/StartScreen';
+import YuklemeEkrani from './pages/LoadingScreen';
+import SonuclarEkrani from './pages/ResultsScreen';
+import { Toaster, toast } from 'react-hot-toast';
 
 export default function App() {
   // Ekran Durumu: 'baslama' | 'prompt' | 'yukleme' | 'sonuclar' | 'error'
@@ -13,12 +13,10 @@ export default function App() {
   // Paylaşılan Veriler
   const [searchResults, setSearchResults] = useState(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState(null);
-  const [error, setError] = useState(null);
 
   // AI Görsel Üretim Durumları (State Lifting)
   const [generatedImage, setGeneratedImage] = useState(null);
   const [promptHistory, setPromptHistory] = useState([]);
-  const [aiMessage, setAiMessage] = useState(null);
 
   // Baslama Ekranindan -> Prompt Ekranina Gecis
   const handleNavigateToPrompt = useCallback(() => {
@@ -28,7 +26,6 @@ export default function App() {
   // Baslama Ekranindan -> Gorsel Yükleme ve Arama (File tabanli)
   const handleFileSearch = useCallback(async (file) => {
     setScreen('yukleme');
-    setError(null);
     setSearchResults(null);
     
     // Anında gösterim için local preview oluştur
@@ -61,15 +58,14 @@ export default function App() {
       setScreen('sonuclar');
     } catch (err) {
       console.error('Arama hatası:', err);
-      setError(err.message || 'Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.');
-      setScreen('error');
+      toast.error(err.message || 'Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.');
+      setScreen('baslama');
     }
   }, []);
 
   // Prompt Ekranindan -> Base64 Gorsel ile Arama
   const handleGeneratedImageSearch = useCallback(async (base64Data, mimeType) => {
     setScreen('yukleme');
-    setError(null);
     setSearchResults(null);
     
     // Anında gösterim için base64 preview oluştur
@@ -99,8 +95,8 @@ export default function App() {
       setScreen('sonuclar');
     } catch (err) {
       console.error('Base64 Arama hatası:', err);
-      setError(err.message || 'Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.');
-      setScreen('error');
+      toast.error(err.message || 'Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.');
+      setScreen('prompt');
     }
   }, []);
 
@@ -109,17 +105,14 @@ export default function App() {
     setScreen('baslama');
     setSearchResults(null);
     setUploadedImageUrl(null);
-    setError(null);
     setGeneratedImage(null);
     setPromptHistory([]);
-    setAiMessage(null);
   }, []);
 
   // Görseli AI ile düzenlemek üzere Prompt ekranına geri dönüş (State'leri sıfırlamaz)
   const handleEditImage = useCallback(() => {
     setScreen('prompt');
     setSearchResults(null);
-    setError(null);
   }, []);
 
   // Header Logo Click
@@ -128,20 +121,11 @@ export default function App() {
   }, [handleNewSearch]);
 
   return (
-    <div className="app bg-[#fafafc] min-h-screen">
+    <div className="min-h-screen flex flex-col bg-[#fafafc]">
+      <Toaster position="top-center" />
       <Header onLogoClick={handleLogoClick} />
 
-      <main className="app__main flex items-center justify-center relative selection:bg-indigo-100 selection:text-indigo-900 w-full h-full">
-        {screen === 'error' && (
-          <div className="app__error" id="app-error">
-            <div className="app__error-icon">⚠️</div>
-            <h3 className="app__error-title">Bir Hata Oluştu</h3>
-            <p className="app__error-message">{error}</p>
-            <button className="app__error-btn" onClick={handleNewSearch} id="try-again-button">
-              ← Tekrar Dene
-            </button>
-          </div>
-        )}
+      <main className="flex-1 flex items-center justify-center relative selection:bg-indigo-100 selection:text-indigo-900 w-full h-full">
 
         {screen === 'baslama' && (
           <BaslamaEkrani 
@@ -157,8 +141,6 @@ export default function App() {
             setCurrentImage={setGeneratedImage}
             promptHistory={promptHistory}
             setPromptHistory={setPromptHistory}
-            aiMessage={aiMessage}
-            setAiMessage={setAiMessage}
           />
         )}
 

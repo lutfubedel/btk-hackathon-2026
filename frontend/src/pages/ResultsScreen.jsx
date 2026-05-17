@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Search, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
-import ProductCard from '../shared/ProductCard/ProductCard';
+import ProductCard from "../components/productCard";
 
-export default function SonuclarEkrani({ uploadedImage, searchResults, onNewSearch, onEditImage }) {
+export default function ResultsScreen({ uploadedImage, searchResults, onNewSearch, onEditImage }) {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
