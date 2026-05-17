@@ -1,22 +1,45 @@
-<svg viewBox="250 40 180 210" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="250 40 180 210" role="img" xmlns="http://www.w3.org/2000/svg">
+  <!-- ALTIGEN ÇERÇEVE (beyaz, dış) -->
   <polygon points="340,52 418,98 418,188 340,234 262,188 262,98" fill="#FFFFFF"/>
+
+  <!-- Altıgen iç dolgu (turuncu) -->
   <polygon points="340,64 406,102 406,179 340,217 274,179 274,102" fill="#FF6B1A"/>
+
+  <!-- Altıgen iç halka (beyaz, ince) -->
   <polygon points="340,64 406,102 406,179 340,217 274,179 274,102" fill="none" stroke="#FFFFFF" stroke-width="1" opacity="0.2"/>
+
+  <!-- KAMERA GÖVDESİ (beyaz) -->
   <rect x="291" y="105" width="98" height="76" rx="12" fill="#FFFFFF"/>
+
+  <!-- Kamera üst çıkıntı -->
   <rect x="316" y="96" width="48" height="14" rx="6" fill="#FFFFFF"/>
+
+  <!-- Lens dış halkası (koyu) -->
   <circle cx="340" cy="143" r="26" fill="#0D0D0D"/>
+
+  <!-- Lens iç parlama -->
   <circle cx="340" cy="143" r="18" fill="#FFFFFF" opacity="0.12"/>
   <circle cx="346" cy="137" r="4" fill="#FFFFFF" opacity="0.5"/>
+
+  <!-- AI yıldız lensin ortasında (turuncu) -->
   <path d="M340 136 L342.5 141 L348 143 L342.5 145 L340 150 L337.5 145 L332 143 L337.5 141 Z" fill="#FF6B1A"/>
+
+  <!-- Kamera flash noktası -->
   <circle cx="302" cy="110" r="5" fill="#0D0D0D"/>
   <circle cx="302" cy="110" r="3" fill="#FFFFFF"/>
+
+  <!-- Kamera vizör -->
   <rect x="320" y="110" width="14" height="8" rx="3" fill="#0D0D0D" opacity="0.3"/>
+
+  <!-- ALTIGEN KÖŞE NOKTALARI -->
   <circle cx="340" cy="46" r="4" fill="#FF6B1A" opacity="0.9"/>
   <circle cx="256" cy="92" r="3.5" fill="#FF6B1A" opacity="0.7"/>
   <circle cx="424" cy="92" r="3.5" fill="#FF6B1A" opacity="0.7"/>
   <circle cx="256" cy="194" r="3.5" fill="#FF6B1A" opacity="0.5"/>
   <circle cx="424" cy="194" r="3.5" fill="#FF6B1A" opacity="0.5"/>
   <circle cx="340" cy="240" r="4" fill="#FF6B1A" opacity="0.6"/>
+
+  <!-- Köşe bağlantı çizgileri -->
   <line x1="340" y1="50" x2="340" y2="52" stroke="#FF6B1A" stroke-width="1" opacity="0.5"/>
   <line x1="259" y1="94" x2="262" y2="96" stroke="#FF6B1A" stroke-width="0.8" opacity="0.4"/>
   <line x1="421" y1="94" x2="418" y2="96" stroke="#FF6B1A" stroke-width="0.8" opacity="0.4"/>
