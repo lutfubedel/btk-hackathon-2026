@@ -58,6 +58,54 @@ export async function checkProductPrompt(prompt) {
   return { isProduct, reason };
 }
 
+const EDIT_MODERATION_PROMPT = `Sen bir içerik denetleme asistanısın. Sana bir ürün görseli ve kullanıcının bu görsel üzerinde yapmak istediği düzenleme isteği verilecek.
+Yalnızca "EVET" veya "HAYIR" ile yanıtla.
+
+Soru: Bu düzenleme isteği, GÖRSELDE ZATEN VAR OLAN ürünü koruyarak o ürün üzerinde bir değişiklik mi yapıyor?
+(Örneğin renk, arka plan, doku, materyal, ışık değiştirme gibi.)
+
+HAYIR de eğer:
+- Kullanıcı görseldeki ürünü tamamen farklı bir ürüne veya nesneye dönüştürmek istiyorsa (elbise varken kulaklık, çanta varken ayakkabı gibi)
+- Doğa, manzara, hayvan, insan veya soyut sanat üretimi isteniyorsa
+- Görseldeki ürünle alakasız yeni bir sahne yaratılmak isteniyorsa
+- "Yeni bir şey yap", "farklı ürün oluştur" gibi ifadeler kullanılıyorsa
+
+Düzenleme isteği: "{edit_prompt}"
+
+Yanıt (sadece EVET veya HAYIR):`;
+
+export async function checkEditPrompt(editPrompt, imageBase64 = null, mimeType = 'image/png') {
+  console.log(`🔍 Düzenleme isteği kontrol ediliyor: "${editPrompt.substring(0, 60)}..."`);
+
+  const ai = getClient();
+  const moderationText = EDIT_MODERATION_PROMPT.replace('{edit_prompt}', editPrompt);
+
+  // Orijinal görsel varsa multimodal (görsel + metin) olarak kontrol et
+  // Bu sayede "elbise varken kulaklık isteniyor" gibi konu değiştirmeler tespit edilir
+  const parts = [];
+  if (imageBase64) {
+    const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+    parts.push({ inlineData: { mimeType, data: cleanBase64 } });
+  }
+  parts.push({ text: moderationText });
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.5-flash',
+    contents: [{ role: 'user', parts }],
+  });
+
+  const answer = response.candidates?.[0]?.content?.parts?.[0]?.text?.trim().toUpperCase() || '';
+  const isValidEdit = answer.startsWith('EVET');
+
+  const reason = isValidEdit
+    ? 'Düzenleme isteği geçerli, görsel güncelleniyor...'
+    : 'Hata: Bu düzenleme isteği görseldeki ürünle uyumsuz. Yalnızca mevcut ürün üzerinde değişiklik yapılabilir (renk, arka plan, doku vb.).';
+
+  console.log(isValidEdit ? `✅ ${reason}` : `❌ ${reason}`);
+
+  return { isValidEdit, reason };
+}
+
 // Gemini API ile sıfırdan görsel üretir
 export async function generateImage(prompt) {
   console.log(`🎨 Gemini görsel üretimi başlatılıyor: "${prompt.substring(0, 60)}..."`);

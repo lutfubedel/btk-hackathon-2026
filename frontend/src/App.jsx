@@ -17,6 +17,7 @@ export default function App() {
   // AI Görsel Üretim Durumları (State Lifting)
   const [generatedImage, setGeneratedImage] = useState(null);
   const [promptHistory, setPromptHistory] = useState([]);
+  const [chatMessages, setChatMessages] = useState([]);
 
   // Baslama Ekranindan -> Prompt Ekranina Gecis
   const handleNavigateToPrompt = useCallback(() => {
@@ -118,6 +119,7 @@ export default function App() {
     setUploadedImageUrl(null);
     setGeneratedImage(null);
     setPromptHistory([]);
+    setChatMessages([]);
   }, [navigate]);
 
   // Görseli AI ile düzenlemek üzere Prompt ekranına geri dönüş (State'leri sıfırlamaz)
@@ -152,6 +154,8 @@ export default function App() {
               setCurrentImage={setGeneratedImage}
               promptHistory={promptHistory}
               setPromptHistory={setPromptHistory}
+              chatMessages={chatMessages}
+              setChatMessages={setChatMessages}
             />
           } />
           <Route path="/loading" element={

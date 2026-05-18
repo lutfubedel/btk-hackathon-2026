@@ -2,7 +2,7 @@ import { Router } from 'express';
 import upload from '../middleware/upload.js';
 import { uploadImage, uploadBase64Image } from '../services/r2Service.js';
 import { searchByImage } from '../services/serpApiService.js';
-import { generateImage, editImage, generateSearchQueryFromImage, chatAndEditImage, checkProductPrompt } from '../services/geminiService.js';
+import { generateImage, editImage, generateSearchQueryFromImage, chatAndEditImage, checkProductPrompt, checkEditPrompt } from '../services/geminiService.js';
 
 const router = Router();
 
@@ -120,6 +120,16 @@ router.post('/generate', async (req, res) => {
     let result;
 
     if (imageBase64) {
+      // Düzenleme isteğini denetle: görseli de göndererek multimodal kontrol yap
+      // Bu sayede "elbise varken kulağlık isteniyor" gibi konu değiştirmeler engellenir
+      const editModeration = await checkEditPrompt(prompt, imageBase64, mimeType || 'image/png');
+      if (!editModeration.isValidEdit) {
+        return res.status(400).json({
+          success: false,
+          error: editModeration.reason,
+        });
+      }
+
       // Mevcut görseli düzenle
       result = await editImage(prompt, imageBase64, mimeType || 'image/png');
     } else {
@@ -176,6 +186,16 @@ router.post('/chat-edit', async (req, res) => {
     }
 
     console.log(`\n💬 Chat-Edit isteği: "${message.substring(0, 60)}..."`);
+
+    // Düzenleme isteğini denetle: görseli de göndererek multimodal kontrol yap
+    // Bu sayede "elbise varken kulağlık isteniyor" gibi konu değiştirmeler engellenir
+    const editModeration = await checkEditPrompt(message, imageBase64, mimeType || 'image/png');
+    if (!editModeration.isValidEdit) {
+      return res.status(400).json({
+        success: false,
+        error: editModeration.reason,
+      });
+    }
 
     const result = await chatAndEditImage(message, imageBase64, mimeType || 'image/png');
 

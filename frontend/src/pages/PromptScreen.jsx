@@ -49,12 +49,13 @@ export default function PromptScreen({
   setCurrentImage,
   promptHistory,
   setPromptHistory,
+  chatMessages,
+  setChatMessages,
 }) {
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
 
   // Chatbot state
-  const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [isImageZoomed, setIsImageZoomed] = useState(false);
@@ -191,9 +192,10 @@ export default function PromptScreen({
 
     } catch (err) {
       console.error('Chat Error:', err);
+      toast.error(err.message, { duration: 4000 });
       setChatMessages(prev => [...prev, {
         role: 'assistant',
-        content: `❌ Üzgünüm, bir sorun oluştu: ${err.message}`,
+        content: `❌ ${err.message}`,
       }]);
     } finally {
       setIsChatLoading(false);
