@@ -1,7 +1,7 @@
 export default function Header({ onLogoClick }) {
   return (
     <header className="sticky top-0 z-100 bg-white/90 backdrop-blur-[20px] border-b border-[#eef0f4] py-3.5 px-6" id="app-header">
-      <div className="max-w-[1400px] mx-auto flex items-center justify-between">
+      <div className="w-full flex items-center justify-between">
         <div className="flex items-center gap-3 cursor-pointer group" onClick={onLogoClick}>
           <img 
             src="/visearch_logo_icon.svg" 

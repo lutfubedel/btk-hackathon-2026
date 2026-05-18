@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { ArrowRight, Hexagon, Layers, Search, Send, Bot, User, Sparkles, RefreshCw, ZoomIn, ArrowLeft } from 'lucide-react';
+import { ArrowRight, Hexagon, Layers, Search, Send, Bot, User, Sparkles, RefreshCw, ZoomIn, ArrowLeft, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 // ---------- Chatbot Mesaj Balonu ----------
@@ -219,19 +219,22 @@ export default function PromptScreen({
   if (!currentImage && !isGenerating) {
     return (
       <div className="w-full flex flex-col items-center justify-center min-h-[80vh] py-8 relative">
-        {/* Arka plan efektleri */}
-        <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-          <div className="absolute bg-orange-400/10 rounded-full blur-[100px] w-[45vw] h-[45vw] top-[5%] left-[25%]" />
-          <div className="absolute bg-slate-400/10 rounded-full blur-[120px] w-[55vw] h-[55vw] bottom-[-10%] right-[-10%]" />
+        {/* Arka plan efektleri - Modern Izgara */}
+        <div className="fixed inset-0 pointer-events-none z-0 flex justify-center items-center overflow-hidden bg-slate-50/50">
+          <div 
+            className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:3rem_3rem]"
+            style={{ 
+              maskImage: 'radial-gradient(ellipse 80% 80% at 50% 50%, #000 20%, transparent 100%)', 
+              WebkitMaskImage: 'radial-gradient(ellipse 80% 80% at 50% 50%, #000 20%, transparent 100%)' 
+            }}
+          />
+          <div className="absolute w-[40vw] h-[40vw] rounded-full bg-orange-400/5 blur-[100px] top-[-10%] right-[-5%]" />
+          <div className="absolute w-[40vw] h-[40vw] rounded-full bg-slate-400/10 blur-[100px] bottom-[-10%] left-[-5%]" />
         </div>
 
         <div className="z-10 flex flex-col items-center w-full max-w-2xl px-4">
           {/* Başlık */}
           <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 bg-orange-50 border border-orange-100 text-orange-600 text-sm font-medium px-4 py-1.5 rounded-full mb-6">
-              <Sparkles className="w-3.5 h-3.5" />
-              AI Tasarım Stüdyosu
-            </div>
             <h1 className="text-4xl md:text-[3.5rem] font-extrabold text-slate-900 mb-5 tracking-tighter leading-tight">
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-orange-600">
                 Aklınızdaki tasarımı
@@ -275,8 +278,15 @@ export default function PromptScreen({
   if (isGenerating && !currentImage) {
     return (
       <div className="w-full flex flex-col items-center justify-center min-h-[80vh]">
-        <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-          <div className="absolute bg-orange-400/10 rounded-full blur-[100px] w-[45vw] h-[45vw] top-[5%] left-[25%]" />
+        <div className="fixed inset-0 pointer-events-none z-0 flex justify-center items-center overflow-hidden bg-slate-50/50">
+          <div 
+            className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:3rem_3rem]"
+            style={{ 
+              maskImage: 'radial-gradient(ellipse 80% 80% at 50% 50%, #000 20%, transparent 100%)', 
+              WebkitMaskImage: 'radial-gradient(ellipse 80% 80% at 50% 50%, #000 20%, transparent 100%)' 
+            }}
+          />
+          <div className="absolute w-[40vw] h-[40vw] rounded-full bg-orange-400/5 blur-[100px] top-[-10%] right-[-5%]" />
         </div>
         <div className="z-10 flex flex-col items-center gap-4">
           <div className="w-20 h-20 rounded-3xl bg-white/80 backdrop-blur-xl border border-white/80 shadow-xl flex items-center justify-center">
@@ -295,14 +305,26 @@ export default function PromptScreen({
       {/* Zoom Modal */}
       {isImageZoomed && (
         <div
-          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 cursor-zoom-out animate-in fade-in duration-200"
+          className="fixed inset-0 z-[1000] bg-black/50 backdrop-blur-md flex items-center justify-center p-6 cursor-zoom-out animate-in fade-in duration-200"
           onClick={() => setIsImageZoomed(false)}
         >
-          <img
-            src={currentImage}
-            alt="Zoomed View"
-            className="max-w-[90vw] max-h-[90vh] object-contain rounded-3xl shadow-2xl animate-in zoom-in-95 duration-200"
-          />
+          <div className="relative max-w-[95vw] max-h-[85vh] md:max-w-[750px] md:max-h-[750px] flex items-center justify-center">
+            <img
+              src={currentImage}
+              alt="Zoomed View"
+              className="max-w-full max-h-full object-contain rounded-3xl shadow-2xl border border-white/10 animate-in zoom-in-95 duration-200"
+            />
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsImageZoomed(false);
+              }}
+              className="absolute top-4 right-4 bg-black/40 hover:bg-black/60 text-white hover:text-orange-400 border border-white/10 backdrop-blur-md p-2.5 rounded-full transition-all cursor-pointer shadow-lg hover:scale-105 active:scale-95"
+              title="Kapat"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       )}
 
@@ -320,10 +342,6 @@ export default function PromptScreen({
               <div>
                 <p className="text-sm font-semibold text-slate-800">Tasarım Asistanı</p>
                 <p className="text-xs text-slate-400">Yapay Zeka ile Anlık Düzenleme</p>
-              </div>
-              <div className="ml-auto flex items-center gap-1.5 bg-green-50 border border-green-100 px-2.5 py-1 rounded-full">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                <span className="text-[10px] text-green-700 font-semibold tracking-wide uppercase">Aktif</span>
               </div>
             </div>
 
@@ -343,7 +361,7 @@ export default function PromptScreen({
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
                   disabled={isChatLoading || isGenerating}
-                  placeholder='Güncelleme isteğini yaz... (ör: "Arka planı tamamen beyaz yap")'
+                  placeholder='Aklınızdaki dokunuşu tarif edin...'
                   className="flex-1 bg-slate-50 border border-slate-200/60 rounded-2xl px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-orange-300 transition-all disabled:opacity-50"
                 />
                 <button
@@ -363,8 +381,17 @@ export default function PromptScreen({
         </div>
 
         {/* ── SAĞ: Görsel Alanı & Altındaki Butonlar (%70 genişlik, ortalanmış) ── */}
-        <div className="flex-1 flex flex-col items-center justify-center gap-6 p-8 lg:p-12 lg:overflow-y-auto">
-          <div className="relative w-full max-w-[440px] aspect-square group">
+        <div className="flex-1 flex flex-col items-center justify-center gap-6 p-8 lg:p-12 lg:overflow-y-auto relative bg-slate-50/30">
+          {/* Izgara Deseni (Canvas Arka Planı) */}
+          <div 
+            className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:3rem_3rem] pointer-events-none z-0"
+            style={{ 
+              maskImage: 'radial-gradient(ellipse 80% 80% at 50% 50%, #000 20%, transparent 100%)', 
+              WebkitMaskImage: 'radial-gradient(ellipse 80% 80% at 50% 50%, #000 20%, transparent 100%)' 
+            }}
+          />
+          
+          <div className="relative z-10 w-full max-w-[440px] aspect-square group">
             
             {/* Yükleme/Güncelleme overlay */}
             {(isGenerating || isChatLoading) && (
@@ -399,7 +426,7 @@ export default function PromptScreen({
           </div>
 
           {/* ── ALT BUTONLAR (Resmin hemen altında) ── */}
-          <div className="w-full max-w-[440px] flex flex-col gap-3">
+          <div className="relative z-10 w-full max-w-[440px] flex flex-col gap-3">
             {/* Ürünü Ara Butonu (TURUNCU) */}
             <button
               onClick={handleSearchWeb}
