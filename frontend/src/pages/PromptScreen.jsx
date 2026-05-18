@@ -8,7 +8,7 @@ function ChatBubble({ message }) {
   return (
     <div className={`flex gap-3 ${isUser ? 'flex-row-reverse' : 'flex-row'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
       {/* Avatar */}
-      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center shadow-sm ${
+      <div className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center shadow-sm ${
         isUser ? 'bg-orange-500 text-white' : 'bg-white border border-orange-100 text-orange-500'
       }`}>
         {isUser ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
@@ -30,7 +30,7 @@ function ChatBubble({ message }) {
 function TypingIndicator() {
   return (
     <div className="flex gap-3 animate-in fade-in duration-300">
-      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-white border border-orange-100 flex items-center justify-center text-orange-500 shadow-sm">
+      <div className="shrink-0 w-8 h-8 rounded-full bg-white border border-orange-100 flex items-center justify-center text-orange-500 shadow-sm">
         <Bot className="w-4 h-4" />
       </div>
       <div className="bg-slate-50 border border-slate-100 px-4 py-3 rounded-2xl rounded-tl-sm shadow-sm flex items-center gap-1">
@@ -224,7 +224,7 @@ export default function PromptScreen({
         {/* Arka plan efektleri - Modern Izgara */}
         <div className="fixed inset-0 pointer-events-none z-0 flex justify-center items-center overflow-hidden bg-slate-50/50">
           <div 
-            className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:3rem_3rem]"
+            className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-size-[3rem_3rem]"
             style={{ 
               maskImage: 'radial-gradient(ellipse 80% 80% at 50% 50%, #000 20%, transparent 100%)', 
               WebkitMaskImage: 'radial-gradient(ellipse 80% 80% at 50% 50%, #000 20%, transparent 100%)' 
@@ -238,7 +238,7 @@ export default function PromptScreen({
           {/* Başlık */}
           <div className="text-center mb-12">
             <h1 className="text-4xl md:text-[3.5rem] font-extrabold text-slate-900 mb-5 tracking-tighter leading-tight">
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-orange-600">
+              <span className="text-transparent bg-clip-text bg-linear-to-r from-orange-500 to-orange-600">
                 Aklınızdaki tasarımı
               </span>
               <br className="hidden md:block" />
@@ -282,7 +282,7 @@ export default function PromptScreen({
       <div className="w-full flex flex-col items-center justify-center min-h-[80vh]">
         <div className="fixed inset-0 pointer-events-none z-0 flex justify-center items-center overflow-hidden bg-slate-50/50">
           <div 
-            className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:3rem_3rem]"
+            className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-size-[3rem_3rem]"
             style={{ 
               maskImage: 'radial-gradient(ellipse 80% 80% at 50% 50%, #000 20%, transparent 100%)', 
               WebkitMaskImage: 'radial-gradient(ellipse 80% 80% at 50% 50%, #000 20%, transparent 100%)' 
@@ -307,7 +307,7 @@ export default function PromptScreen({
       {/* Zoom Modal */}
       {isImageZoomed && (
         <div
-          className="fixed inset-0 z-[1000] bg-black/50 backdrop-blur-md flex items-center justify-center p-6 cursor-zoom-out animate-in fade-in duration-200"
+          className="fixed inset-0 z-1000 bg-black/50 backdrop-blur-md flex items-center justify-center p-6 cursor-zoom-out animate-in fade-in duration-200"
           onClick={() => setIsImageZoomed(false)}
         >
           <div className="relative max-w-[95vw] max-h-[85vh] md:max-w-[750px] md:max-h-[750px] flex items-center justify-center">
@@ -338,7 +338,7 @@ export default function PromptScreen({
             
             {/* Chatbot Başlık */}
             <div className="flex items-center gap-3 px-6 py-4 border-b border-slate-100 bg-white">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-sm">
+              <div className="w-9 h-9 rounded-full bg-linear-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-sm">
                 <Bot className="w-5 h-5 text-white" />
               </div>
               <div>
@@ -348,7 +348,7 @@ export default function PromptScreen({
             </div>
 
             {/* Mesaj Alanı */}
-            <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-4 custom-scrollbar bg-slate-50/30 bg-[radial-gradient(#f9731626_1.5px,transparent_1.5px)] [background-size:20px_20px]">
+            <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-4 custom-scrollbar bg-slate-50/30 bg-[radial-gradient(#f9731626_1.5px,transparent_1.5px)] bg-size-[20px_20px]">
               {chatMessages.map((msg, i) => <ChatBubble key={i} message={msg} />)}
               {isChatLoading && <TypingIndicator />}
               <div ref={chatEndRef} />
@@ -386,7 +386,7 @@ export default function PromptScreen({
         <div className="flex-1 flex flex-col items-center justify-center gap-6 p-8 lg:p-12 lg:overflow-y-auto relative bg-slate-50/30">
           {/* Izgara Deseni (Canvas Arka Planı) */}
           <div 
-            className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:3rem_3rem] pointer-events-none z-0"
+            className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-size-[3rem_3rem] pointer-events-none z-0"
             style={{ 
               maskImage: 'radial-gradient(ellipse 80% 80% at 50% 50%, #000 20%, transparent 100%)', 
               WebkitMaskImage: 'radial-gradient(ellipse 80% 80% at 50% 50%, #000 20%, transparent 100%)' 
@@ -397,7 +397,7 @@ export default function PromptScreen({
             
             {/* Yükleme/Güncelleme overlay */}
             {(isGenerating || isChatLoading) && (
-              <div className="absolute inset-0 z-20 bg-white/70 backdrop-blur-xl rounded-[2rem] flex flex-col items-center justify-center animate-in fade-in duration-300">
+              <div className="absolute inset-0 z-20 bg-white/70 backdrop-blur-xl rounded-4xl flex flex-col items-center justify-center animate-in fade-in duration-300">
                 <Hexagon className="w-12 h-12 text-orange-500 animate-custom-spin mb-3" strokeWidth={1.5} />
                 <p className="text-slate-700 font-semibold text-sm">Tasarım Güncelleniyor...</p>
               </div>
@@ -405,7 +405,7 @@ export default function PromptScreen({
 
             {/* Görsel */}
             {currentImage && (
-              <div className="relative w-full h-full rounded-[2rem] overflow-hidden shadow-[0_20px_50px_-15px_rgba(0,0,0,0.12)] border border-slate-100 bg-white">
+              <div className="relative w-full h-full rounded-4xl overflow-hidden shadow-[0_20px_50px_-15px_rgba(0,0,0,0.12)] border border-slate-100 bg-white">
                 <img
                   src={currentImage}
                   alt="AI Tasarım"
@@ -422,7 +422,7 @@ export default function PromptScreen({
                 </button>
 
                 {/* Alt şık hafif gölge efekti */}
-                <div className="absolute bottom-0 left-0 right-0 h-14 bg-gradient-to-t from-black/5 to-transparent pointer-events-none rounded-b-[2rem]" />
+                <div className="absolute bottom-0 left-0 right-0 h-14 bg-linear-to-t from-black/5 to-transparent pointer-events-none rounded-b-4xl" />
               </div>
             )}
           </div>
