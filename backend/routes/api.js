@@ -2,7 +2,7 @@ import { Router } from 'express';
 import upload from '../middleware/upload.js';
 import { uploadImage, uploadBase64Image } from '../services/r2Service.js';
 import { searchByImage } from '../services/serpApiService.js';
-import { generateImage, editImage, generateSearchQueryFromImage, chatAndEditImage } from '../services/geminiService.js';
+import { generateImage, editImage, generateSearchQueryFromImage, chatAndEditImage, checkProductPrompt } from '../services/geminiService.js';
 
 const router = Router();
 
@@ -123,6 +123,15 @@ router.post('/generate', async (req, res) => {
       // Mevcut görseli düzenle
       result = await editImage(prompt, imageBase64, mimeType || 'image/png');
     } else {
+      // Sıfırdan üretim öncesinde ürün kontrolü yap
+      const moderation = await checkProductPrompt(prompt);
+      if (!moderation.isProduct) {
+        return res.status(400).json({
+          success: false,
+          error: moderation.reason,
+        });
+      }
+
       // Sıfırdan üret
       result = await generateImage(prompt);
     }

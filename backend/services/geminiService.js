@@ -14,6 +14,50 @@ function getClient() {
   return aiClient;
 }
 
+const MODERATION_PROMPT = `Sen bir içerik denetleme asistanısın. Kullanıcının aşağıdaki promptunu analiz et ve
+yalnızca "EVET" veya "HAYIR" ile yanıtla.
+
+Soru: Bu prompt, internette satılabilecek somut bir ürünün (örneğin: ayakkabı, kalem, elbise,
+çanta, telefon kılıfı, kulaklık, saat, kitap, mobilya, elektronik ürün vb.) resmi üretmek
+için mi kullanılıyor?
+
+Aşağıdaki kategoriler için HAYIR de:
+- Doğa (dağ, orman, nehir, gökyüzü, gün batımı vb.)
+- Hayvanlar (kedi, köpek, kuş, balık vb.)
+- İnsanlar veya insan yüzleri
+- Soyut sanat
+- Manzara fotoğrafları
+- Fantastik veya mitolojik varlıklar
+- Bitkiler veya çiçekler (ürün olarak satılmıyorsa)
+
+Kullanıcı promptu:
+"{user_prompt}"
+
+Yanıt (sadece EVET veya HAYIR):`;
+
+export async function checkProductPrompt(prompt) {
+  console.log(`🔍 Prompt kontrol ediliyor: "${prompt.substring(0, 60)}..."`);
+  
+  const ai = getClient();
+  const moderationText = MODERATION_PROMPT.replace('{user_prompt}', prompt);
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.5-flash',
+    contents: [moderationText],
+  });
+
+  const answer = response.candidates?.[0]?.content?.parts?.[0]?.text?.trim().toUpperCase() || '';
+  const isProduct = answer.startsWith('EVET');
+
+  const reason = isProduct
+    ? 'Prompt ürün ile ilgili, resim üretiliyor...'
+    : 'Hata: Yalnızca internette satılabilecek ürünlerin resimleri üretilebilir. ';
+
+  console.log(reason);
+
+  return { isProduct, reason };
+}
+
 // Gemini API ile sıfırdan görsel üretir
 export async function generateImage(prompt) {
   console.log(`🎨 Gemini görsel üretimi başlatılıyor: "${prompt.substring(0, 60)}..."`);
