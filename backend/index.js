@@ -16,7 +16,13 @@ const PORT = process.env.PORT || 3001;
 
 // CORS — Frontend'den gelen isteklere izin ver
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000'],
+  origin: [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://btk-hackathon-2026-g7u17je0e-lutfus-projects-595b23fb.vercel.app',
+    // Varsa ana Vercel domain'in de ekle:
+    // 'https://visearchai.vercel.app'
+  ],
   methods: ['GET', 'POST'],
   allowedHeaders: ['Content-Type'],
 }));
