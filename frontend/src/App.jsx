@@ -55,7 +55,7 @@ export default function App() {
       const formData = new FormData();
       formData.append('image', file);
 
-      const response = await fetch('/api/search', {
+      const response = await fetch(import.meta.env.VITE_API_URL + '/api/search', {
         method: 'POST',
         body: formData,
       });
@@ -86,7 +86,7 @@ export default function App() {
     setGeneratedImage(fullBase64Url); // State senkronizasyonu için
 
     try {
-      const response = await fetch('/api/search-by-base64', {
+      const response = await fetch(import.meta.env.VITE_API_URL + '/api/search-by-base64', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

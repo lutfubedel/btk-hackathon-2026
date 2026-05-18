@@ -96,7 +96,7 @@ export default function PromptScreen({
     setIsGenerating(true);
 
     try {
-      const response = await fetch('/api/generate', {
+      const response = await fetch(import.meta.env.VITE_API_URL + '/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -153,7 +153,7 @@ export default function PromptScreen({
     setChatMessages(prev => [...prev, { role: 'user', content: userMessage }]);
 
     try {
-      const response = await fetch('/api/chat-edit', {
+      const response = await fetch(import.meta.env.VITE_API_URL + '/api/chat-edit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
