@@ -20,8 +20,7 @@ app.use(cors({
     'http://localhost:5173',
     'http://localhost:3000',
     'https://btk-hackathon-2026.vercel.app',
-    // Varsa ana Vercel domain'in de ekle:
-    // 'https://visearchai.vercel.app'
+    'https://btk-hackathon-2026-gpqxrc5a5-lutfus-projects-595b23fb.vercel.app',
   ],
   methods: ['GET', 'POST'],
   allowedHeaders: ['Content-Type'],
