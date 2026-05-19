@@ -51,10 +51,15 @@
 
 ## 📸 Ekran Görüntüleri
 
-|                                         Platform Arayüzü                                          |
-| :-----------------------------------------------------------------------------------------------: |
-|           <img src="frontend/public/mockup.png" alt="ViSearch AI Arayüzü" width="100%">           |
-| _Modern, şık, cam efekti (glassmorphism) ve koyu mod barındıran kullanıcı dostu arayüz tasarımı._ |
+| Görsel 1 | Görsel 2 |
+| :------: | :------: |
+| <img src="images/img_1.png" alt="ViSearch AI ekran görüntüsü 1" width="100%"> | <img src="images/img_2.png" alt="ViSearch AI ekran görüntüsü 2" width="100%"> |
+| Görsel 3 | Görsel 4 |
+| <img src="images/img_3.png" alt="ViSearch AI ekran görüntüsü 3" width="100%"> | <img src="images/img_4.png" alt="ViSearch AI ekran görüntüsü 4" width="100%"> |
+| Görsel 5 | Görsel 6 |
+| <img src="images/img_5.png" alt="ViSearch AI ekran görüntüsü 5" width="100%"> | <img src="images/img_6.png" alt="ViSearch AI ekran görüntüsü 6" width="100%"> |
+| Görsel 7 | Görsel 8 |
+| <img src="images/img_7.png" alt="ViSearch AI ekran görüntüsü 7" width="100%"> | <img src="images/img_8.png" alt="ViSearch AI ekran görüntüsü 8" width="100%"> |
 
 ---
 
@@ -198,4 +203,3 @@ npm run dev
 ```
 
 Uygulama başarıyla derlendiğinde tarayıcınız üzerinden `http://localhost:5173` adresine giderek **ViSearch AI** platformunu kullanmaya başlayabilirsiniz! 🎉
-
