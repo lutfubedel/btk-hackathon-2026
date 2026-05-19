@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="https://your-live-link.vercel.app" target="_blank">
+  <a href="https://btk-hackathon-2026.vercel.app" target="_blank">
     <img src="https://img.shields.io/badge/Canli_Demo-%F0%9F%8C%90_Giris_Yap-orange?style=for-the-badge&logo=google-chrome&logoColor=white" alt="Live Demo" />
   </a>
   &nbsp;&nbsp;
@@ -31,8 +31,15 @@
 
 ## 🔗 Proje Bağlantıları
 
-- **🌐 Canlı Web Sitesi (Demo):** [Uygulamayı Canlıda Deneyimleyin (Vercel/Render)](https://your-live-link.vercel.app)
+- **🌐 Canlı Web Sitesi (Demo):** [Uygulamayı Canlıda Deneyimleyin (Vercel/Render)](https://btk-hackathon-2026.vercel.app)
 - **🎥 Proje Tanıtım Videosu:** [YouTube Üzerinden Detaylı Tanıtımı İzleyin](https://your-video-link.com)
+
+---
+
+## 👥 Geliştiriciler
+
+- Lütfü Bedel
+- Şahin Kaya
 
 ---
 
@@ -192,6 +199,3 @@ npm run dev
 
 Uygulama başarıyla derlendiğinde tarayıcınız üzerinden `http://localhost:5173` adresine giderek **ViSearch AI** platformunu kullanmaya başlayabilirsiniz! 🎉
 
----
-
-<p align="center"><strong>BTK Hackathon 2026</strong> kapsamında ❤️ ile geliştirilmiştir.</p>
