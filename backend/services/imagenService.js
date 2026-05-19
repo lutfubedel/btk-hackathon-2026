@@ -164,7 +164,7 @@ export async function inpaintImageWithImagen(prompt, imageBase64, maskBase64) {
   console.log(`\n🖌️ Imagen bölgesel düzenleme (Inpainting) başlatılıyor: "${prompt.substring(0, 60)}..."`);
   
   const moderation = await checkSafetyAndProductPrompt(prompt);
-  if (moderation.status !== 'VALID') {
+  if (moderation.status === 'BLOCKED') {
     throw new Error(moderation.reason);
   }
 

@@ -186,12 +186,6 @@ router.post('/inpaint', async (req, res) => {
         error: moderation.reason
       });
     }
-    if (moderation.status === 'INVALID') {
-      return res.status(400).json({
-        success: false,
-        error: moderation.reason
-      });
-    }
 
     // Inpainting promptundaki UI referanslarını temizle ve İngilizceye çevir
     const enrichedPrompt = await enrichInpaintPrompt(prompt);
@@ -242,12 +236,6 @@ router.post('/chat-edit', async (req, res) => {
     // Orijinal prompt üzerinde Güvenlik ve Etik kontrolü uygula
     const moderation = await checkSafetyAndProductPrompt(message);
     if (moderation.status === 'BLOCKED') {
-      return res.status(400).json({
-        success: false,
-        error: moderation.reason
-      });
-    }
-    if (moderation.status === 'INVALID') {
       return res.status(400).json({
         success: false,
         error: moderation.reason
