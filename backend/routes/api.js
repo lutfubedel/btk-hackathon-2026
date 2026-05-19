@@ -2,7 +2,7 @@ import { Router } from 'express';
 import upload from '../middleware/upload.js';
 import { uploadImage, uploadBase64Image } from '../services/r2Service.js';
 import { searchByImage } from '../services/serpApiService.js';
-import { generateImage, editImage, generateSearchQueryFromImage, chatAndEditImage, checkProductPrompt, checkEditPrompt, enrichProductPrompt, enrichInpaintPrompt } from '../services/geminiService.js';
+import { generateImage, editImage, generateSearchQueryFromImage, chatAndEditImage, checkProductPrompt, checkEditPrompt, enrichProductPrompt, enrichInpaintPrompt, generatePersonalizedProductPreview } from '../services/geminiService.js';
 import { generateImageWithImagen, inpaintImageWithImagen } from '../services/imagenService.js';
 
 const router = Router();
@@ -225,6 +225,53 @@ router.post('/chat-edit', async (req, res) => {
     return res.status(500).json({
       success: false,
       error: error.message || 'Bir hata oluştu.',
+    });
+  }
+});
+
+/**
+ * POST /api/personalized-preview
+ * Kullanici fotografi + uretilen urun gorseli -> kisisel urun onizlemesi
+ * Body: { userPhotoBase64, productImageBase64, userPhotoMimeType?, productImageMimeType?, prompt? }
+ */
+router.post('/personalized-preview', async (req, res) => {
+  try {
+    const {
+      userPhotoBase64,
+      productImageBase64,
+      userPhotoMimeType,
+      productImageMimeType,
+      prompt,
+    } = req.body;
+
+    if (!userPhotoBase64 || !productImageBase64) {
+      return res.status(400).json({
+        success: false,
+        error: 'Kullanici fotografi ve urun gorseli gereklidir.',
+      });
+    }
+
+    console.log('\nKisisel urun onizleme istegi alindi.');
+
+    const result = await generatePersonalizedProductPreview({
+      userPhotoBase64,
+      userPhotoMimeType: userPhotoMimeType || 'image/png',
+      productImageBase64,
+      productImageMimeType: productImageMimeType || 'image/png',
+      prompt,
+    });
+
+    return res.json({
+      success: true,
+      imageBase64: result.imageBase64,
+      mimeType: result.mimeType || 'image/png',
+      text: result.text,
+    });
+  } catch (error) {
+    console.error('Kisisel onizleme hatasi:', error.message);
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Kisisel onizleme uretilirken bir hata olustu.',
     });
   }
 });

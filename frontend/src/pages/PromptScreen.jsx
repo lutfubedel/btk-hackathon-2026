@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { ArrowRight, Hexagon, Layers, Search, Send, ScanEye, User, Sparkles, RefreshCw, ZoomIn, ArrowLeft, X, Edit3, Trash2 } from 'lucide-react';
+import { ArrowRight, Hexagon, Layers, Search, Send, ScanEye, User, Sparkles, RefreshCw, ZoomIn, ArrowLeft, X, Edit3, Trash2, Camera, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 // ---------- Chatbot Mesaj Balonu ----------
@@ -43,6 +43,37 @@ function TypingIndicator() {
 }
 
 // ---------- Ana Bileşen ----------
+const MAX_PERSONAL_PHOTO_SIZE = 10 * 1024 * 1024;
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('Fotoğraf okunamadı.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+function getImagePayload(dataUrl, fallbackMimeType = 'image/png') {
+  const match = /^data:([^;]+);base64,(.*)$/.exec(dataUrl || '');
+
+  return {
+    mimeType: match?.[1] || fallbackMimeType,
+    imageBase64: match?.[2] || (dataUrl || '').replace(/^data:image\/\w+;base64,/, ''),
+  };
+}
+
+async function readApiErrorMessage(response, fallbackMessage) {
+  const text = await response.text();
+
+  try {
+    const parsed = JSON.parse(text);
+    return parsed.error || fallbackMessage;
+  } catch {
+    return fallbackMessage;
+  }
+}
+
 export default function PromptScreen({
   onSearchGeneratedImage,
   currentImage,
@@ -60,6 +91,10 @@ export default function PromptScreen({
   const [chatInput, setChatInput] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [isImageZoomed, setIsImageZoomed] = useState(false);
+  const [userPhotoPreview, setUserPhotoPreview] = useState(null);
+  const [personalizedPreview, setPersonalizedPreview] = useState(null);
+  const [isPersonalizing, setIsPersonalizing] = useState(false);
+  const [isPersonalizedPreviewZoomed, setIsPersonalizedPreviewZoomed] = useState(false);
 
   // Masking State
   const [isMaskMode, setIsMaskMode] = useState(false);
@@ -74,6 +109,7 @@ export default function PromptScreen({
   const messagesEndRef = useRef(null);
   const chatEndRef = useRef(null);
   const chatInputRef = useRef(null);
+  const personalPhotoInputRef = useRef(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -82,6 +118,12 @@ export default function PromptScreen({
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages, isChatLoading]);
+
+  useEffect(() => {
+    setUserPhotoPreview(null);
+    setPersonalizedPreview(null);
+    setIsPersonalizedPreviewZoomed(false);
+  }, [currentImage]);
 
   // İlk görsel üretildiğinde veya yüklendiğinde bot mesajı ekle
   useEffect(() => {
@@ -198,8 +240,77 @@ export default function PromptScreen({
   };
 
   // ---------- Inpainting API Gönderimi ----------
+  const generatePersonalizedPreview = async (photoDataUrl = userPhotoPreview) => {
+    if (!photoDataUrl || !currentImage || isPersonalizing) return;
+
+    setIsPersonalizing(true);
+
+    try {
+      const userPhoto = getImagePayload(photoDataUrl);
+      const productImage = getImagePayload(currentImage);
+
+      const response = await fetch(API_URL + '/api/personalized-preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userPhotoBase64: userPhoto.imageBase64,
+          userPhotoMimeType: userPhoto.mimeType,
+          productImageBase64: productImage.imageBase64,
+          productImageMimeType: productImage.mimeType,
+        }),
+      });
+
+      const text = await response.text();
+      let data = {};
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = {};
+      }
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Kişisel önizleme üretilirken bir hata oluştu.');
+      }
+
+      setPersonalizedPreview(`data:${data.mimeType || 'image/png'};base64,${data.imageBase64}`);
+      toast.success('Kişisel önizleme hazır!');
+    } catch (err) {
+      console.error('Personalized Preview Error:', err);
+      toast.error(err.message || 'Kişisel önizleme üretilirken bir hata oluştu.');
+    } finally {
+      setIsPersonalizing(false);
+    }
+  };
+
+  const handlePersonalPhotoChange = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+
+    if (!file || isGenerating || isChatLoading || isPersonalizing) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Lütfen bir görsel dosyası seçin.');
+      return;
+    }
+
+    if (file.size > MAX_PERSONAL_PHOTO_SIZE) {
+      toast.error('Fotoğraf boyutu en fazla 10MB olabilir.');
+      return;
+    }
+
+    try {
+      const photoDataUrl = await readFileAsDataUrl(file);
+      setUserPhotoPreview(photoDataUrl);
+      setPersonalizedPreview(null);
+      await generatePersonalizedPreview(photoDataUrl);
+    } catch (err) {
+      console.error('Photo Read Error:', err);
+      toast.error(err.message || 'Fotoğraf okunamadı.');
+    }
+  };
+
   const handleInpaintSubmit = async () => {
-    if (!maskPrompt.trim() || isGenerating) return;
+    if (!maskPrompt.trim() || isGenerating || isPersonalizing) return;
 
     const maskBase64 = generateMaskBase64();
     if (!maskBase64) return;
@@ -222,12 +333,7 @@ export default function PromptScreen({
       });
 
       if (!response.ok) {
-        const text = await response.text();
-        let errorMsg = 'Görsel düzenlenirken hata oluştu.';
-        try {
-          const parsed = JSON.parse(text);
-          errorMsg = parsed.error || errorMsg;
-        } catch (e) {}
+        const errorMsg = await readApiErrorMessage(response, 'Görsel düzenlenirken hata oluştu.');
         throw new Error(errorMsg);
       }
 
@@ -253,7 +359,7 @@ export default function PromptScreen({
   // ---------- İlk Görsel Üretimi ----------
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
-    if (!prompt.trim() || isGenerating) return;
+    if (!prompt.trim() || isGenerating || isPersonalizing) return;
 
     setPromptHistory(prev => [...prev, prompt]);
     const currentPrompt = prompt;
@@ -274,12 +380,7 @@ export default function PromptScreen({
       });
 
       if (!response.ok) {
-        const text = await response.text();
-        let errorMsg = 'Görsel üretilirken bir hata oluştu.';
-        try {
-          const parsed = JSON.parse(text);
-          errorMsg = parsed.error || errorMsg;
-        } catch (e) {}
+        const errorMsg = await readApiErrorMessage(response, 'Görsel üretilirken bir hata oluştu.');
         throw new Error(errorMsg);
       }
 
@@ -308,7 +409,7 @@ export default function PromptScreen({
   // ---------- Chatbot Gönderimi ----------
   const handleChatSubmit = async (e) => {
     e.preventDefault();
-    if (!chatInput.trim() || isChatLoading) return;
+    if (!chatInput.trim() || isChatLoading || isPersonalizing) return;
 
     const userMessage = chatInput.trim();
     setChatInput('');
@@ -329,12 +430,7 @@ export default function PromptScreen({
       });
 
       if (!response.ok) {
-        const text = await response.text();
-        let errorMsg = 'Bir hata oluştu.';
-        try {
-          const parsed = JSON.parse(text);
-          errorMsg = parsed.error || errorMsg;
-        } catch (e) {}
+        const errorMsg = await readApiErrorMessage(response, 'Bir hata oluştu.');
         throw new Error(errorMsg);
       }
 
@@ -495,6 +591,31 @@ export default function PromptScreen({
         </div>
       )}
 
+      {isPersonalizedPreviewZoomed && personalizedPreview && (
+        <div
+          className="fixed inset-0 z-1000 bg-black/50 backdrop-blur-md flex items-center justify-center p-6 cursor-zoom-out animate-in fade-in duration-200"
+          onClick={() => setIsPersonalizedPreviewZoomed(false)}
+        >
+          <div className="relative max-w-[95vw] max-h-[85vh] md:max-w-[750px] md:max-h-[750px] flex items-center justify-center">
+            <img
+              src={personalizedPreview}
+              alt="Kişisel Önizleme"
+              className="max-w-full max-h-full object-contain rounded-3xl shadow-2xl border border-white/10 animate-in zoom-in-95 duration-200"
+            />
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsPersonalizedPreviewZoomed(false);
+              }}
+              className="absolute top-4 right-4 bg-black/40 hover:bg-black/60 text-white hover:text-orange-400 border border-white/10 backdrop-blur-md p-2.5 rounded-full transition-all cursor-pointer shadow-lg hover:scale-105 active:scale-95"
+              title="Kapat"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="w-full flex flex-col lg:flex-row items-stretch lg:h-[calc(100vh-73px)] lg:overflow-hidden relative z-10">
 
         {/* ── SOL: Chatbot Arayüzü (Köşeleri dik, %30 genişlik, tam ekran yüksekliği) ── */}
@@ -527,13 +648,13 @@ export default function PromptScreen({
                   type="text"
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
-                  disabled={isChatLoading || isGenerating}
+                  disabled={isChatLoading || isGenerating || isPersonalizing}
                   placeholder='Aklınızdaki dokunuşu tarif edin...'
                   className="flex-1 bg-slate-50 border border-slate-200/60 rounded-2xl px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-orange-300 transition-all disabled:opacity-50"
                 />
                 <button
                   type="submit"
-                  disabled={!chatInput.trim() || isChatLoading || isGenerating}
+                  disabled={!chatInput.trim() || isChatLoading || isGenerating || isPersonalizing}
                   className="bg-orange-500 hover:bg-orange-600 text-white p-3 rounded-2xl transition-all disabled:opacity-40 shadow-sm hover:shadow-md cursor-pointer flex items-center justify-center"
                 >
                   {isChatLoading ? (
@@ -548,7 +669,7 @@ export default function PromptScreen({
         </div>
 
         {/* ── SAĞ: Görsel Alanı & Altındaki Butonlar (%70 genişlik, ortalanmış) ── */}
-        <div className="flex-1 flex flex-col items-center justify-center gap-6 p-8 lg:p-12 lg:overflow-y-auto relative bg-slate-50/30">
+        <div className="flex-1 flex items-center justify-center p-6 lg:p-10 lg:overflow-y-auto relative bg-slate-50/30">
           {/* Izgara Deseni (Canvas Arka Planı) */}
           <div 
             className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-size-[3rem_3rem] pointer-events-none z-0"
@@ -558,7 +679,10 @@ export default function PromptScreen({
             }}
           />
           
-          <div className="relative z-10 w-full max-w-[440px] group transition-all duration-500 ease-out" style={{ aspectRatio: imageAspectRatio }}>
+          <div className="relative z-10 w-full max-w-5xl flex flex-col xl:flex-row items-center xl:justify-between gap-8">
+            {/* Sol: Görsel */}
+            <div className="w-full max-w-[520px] shrink-0 flex justify-center xl:justify-start">
+              <div className="relative w-full max-w-[520px] group transition-all duration-500 ease-out" style={{ aspectRatio: imageAspectRatio }}>
             
             {/* Yükleme/Güncelleme overlay */}
             {(isGenerating || isChatLoading) && (
@@ -605,11 +729,108 @@ export default function PromptScreen({
                 <div className="absolute bottom-0 left-0 right-0 h-14 bg-linear-to-t from-black/5 to-transparent pointer-events-none rounded-b-4xl" />
               </div>
             )}
-          </div>
+              </div>
+            </div>
+
+            {/* Sağ: Kontroller (Sağa yapışık) */}
+            <div className="w-full max-w-[440px] flex flex-col items-center xl:items-end gap-4">
+              <div className="w-full max-w-[320px] flex flex-col gap-4">
 
           {/* ── ALT BUTONLAR / MASK KONTROLLERİ ── */}
+          {!isMaskMode && (
+            <div className="w-full bg-white border border-slate-200 rounded-3xl shadow-sm p-4 flex flex-col gap-4">
+              <input
+                ref={personalPhotoInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handlePersonalPhotoChange}
+              />
+
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center shrink-0">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-slate-800">Kişisel Önizleme</p>
+                    <p className="text-xs text-slate-400 truncate">Elbise, saat, gözlük ve aksesuar</p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => personalPhotoInputRef.current?.click()}
+                  disabled={isGenerating || isChatLoading || isPersonalizing}
+                  className="w-10 h-10 rounded-2xl bg-slate-950 hover:bg-slate-900 text-white flex items-center justify-center transition-all disabled:opacity-50 cursor-pointer shadow-sm"
+                  title={userPhotoPreview ? 'Fotoğrafı Değiştir' : 'Fotoğraf Yükle'}
+                >
+                  {userPhotoPreview ? <RefreshCw className="w-4 h-4" /> : <Camera className="w-4 h-4" />}
+                </button>
+              </div>
+
+              {personalizedPreview ? (
+                <button
+                  type="button"
+                  onClick={() => setIsPersonalizedPreviewZoomed(true)}
+                  className="relative w-full aspect-square rounded-2xl overflow-hidden bg-slate-100 border border-slate-100 cursor-zoom-in group/preview"
+                >
+                  <img
+                    src={personalizedPreview}
+                    alt="Kişisel Önizleme"
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover/preview:scale-[1.02]"
+                    draggable="false"
+                  />
+                  <span className="absolute top-3 right-3 bg-black/40 text-white backdrop-blur-md p-2 rounded-full opacity-0 group-hover/preview:opacity-100 transition-opacity">
+                    <ZoomIn className="w-4 h-4" />
+                  </span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => personalPhotoInputRef.current?.click()}
+                  disabled={isGenerating || isChatLoading || isPersonalizing}
+                  className="min-h-[116px] rounded-2xl border border-dashed border-slate-300 bg-slate-50/80 hover:bg-orange-50/60 hover:border-orange-300 text-slate-500 hover:text-orange-700 transition-all flex flex-col items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+                >
+                  {isPersonalizing ? (
+                    <>
+                      <Hexagon className="w-7 h-7 text-orange-500 animate-custom-spin" strokeWidth={1.5} />
+                      <span className="text-sm font-semibold text-slate-700">Önizleme hazırlanıyor...</span>
+                    </>
+                  ) : userPhotoPreview ? (
+                    <>
+                      <ImageIcon className="w-7 h-7 text-orange-500" />
+                      <span className="text-sm font-semibold text-slate-700">Fotoğraf yüklendi</span>
+                    </>
+                  ) : (
+                    <>
+                      <Camera className="w-7 h-7" />
+                      <span className="text-sm font-semibold">Fotoğraf Yükle</span>
+                    </>
+                  )}
+                </button>
+              )}
+
+              {userPhotoPreview && (
+                <button
+                  type="button"
+                  onClick={() => generatePersonalizedPreview()}
+                  disabled={isGenerating || isChatLoading || isPersonalizing}
+                  className="w-full bg-white border border-slate-200 text-slate-700 hover:text-orange-600 hover:border-orange-300 py-3 rounded-2xl text-sm font-semibold transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+                >
+                  {isPersonalizing ? (
+                    <Hexagon className="w-4 h-4 animate-custom-spin" strokeWidth={1.5} />
+                  ) : (
+                    <RefreshCw className="w-4 h-4" />
+                  )}
+                  Yeniden Oluştur
+                </button>
+              )}
+            </div>
+          )}
+
           {isMaskMode ? (
-            <div className="relative z-10 w-full max-w-[440px] flex flex-col gap-4 bg-white p-5 rounded-3xl shadow-sm border border-slate-200 animate-in slide-in-from-top-4 duration-300">
+            <div className="w-full flex flex-col gap-4 bg-white p-5 rounded-3xl shadow-sm border border-slate-200 animate-in slide-in-from-top-4 duration-300">
               <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                 <p className="text-sm font-semibold text-slate-800 flex items-center gap-2">
                   <Edit3 className="w-4 h-4 text-orange-500" /> Bölgesel Düzenleme (Mask)
@@ -653,7 +874,7 @@ export default function PromptScreen({
                 />
                 <button
                   onClick={handleInpaintSubmit}
-                  disabled={!maskPrompt.trim()}
+                  disabled={!maskPrompt.trim() || isPersonalizing}
                   className="bg-slate-900 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-slate-800 disabled:opacity-50 cursor-pointer flex items-center gap-2 shadow-sm transition-all active:scale-95"
                 >
                   Uygula
@@ -661,11 +882,11 @@ export default function PromptScreen({
               </div>
             </div>
           ) : (
-            <div className="relative z-10 w-full max-w-[440px] flex flex-col gap-3">
+            <div className="w-full flex flex-col gap-3">
               {/* Ürünü Ara Butonu (TURUNCU) */}
               <button
                 onClick={handleSearchWeb}
-                disabled={isGenerating || isChatLoading}
+                disabled={isGenerating || isChatLoading || isPersonalizing}
                 className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3.5 rounded-2xl text-sm font-semibold transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 cursor-pointer"
               >
                 <Search className="w-4 h-4" />
@@ -675,7 +896,7 @@ export default function PromptScreen({
               {/* Bölgesel Düzenleme Butonu (BEYAZ/SİLUET) */}
               <button
                 onClick={() => setIsMaskMode(true)}
-                disabled={isGenerating || isChatLoading}
+                disabled={isGenerating || isChatLoading || isPersonalizing}
                 className="w-full bg-white border border-slate-200 text-slate-700 hover:text-orange-600 hover:border-orange-300 py-3.5 rounded-2xl text-sm font-semibold transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 cursor-pointer"
               >
                 <Edit3 className="w-4 h-4" />
@@ -685,7 +906,7 @@ export default function PromptScreen({
               {/* Yeni Resim Üret (Geri Dön) Butonu (SİYAH) */}
               <button
                 onClick={handleResetToCreate}
-                disabled={isGenerating || isChatLoading}
+                disabled={isGenerating || isChatLoading || isPersonalizing}
                 className="w-full bg-slate-950 hover:bg-slate-900 text-white py-3.5 rounded-2xl text-sm font-semibold transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 cursor-pointer"
               >
                 <ArrowLeft className="w-4 h-4" />
@@ -693,11 +914,14 @@ export default function PromptScreen({
               </button>
             </div>
           )}
+          </div>
         </div>
+      </div>
 
       </div>
 
       {/* Şık ve Turuncu Temaya Uygun Scrollbar, Spinner & Sayfa Kaydırmasını Engelleme CSS Inject */}
+      </div>
       <style dangerouslySetInnerHTML={{__html: `
         @media (min-width: 1024px) {
           html, body {
