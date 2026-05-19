@@ -46,19 +46,32 @@ export default function ProductCard({ product, index }) {
       </div>
       
       {/* Ürün Detayları */}
-      <div className="px-3 pb-3 flex-1 flex flex-col">
-        <h3 className="font-medium text-slate-800 line-clamp-2 leading-snug mb-3 group-hover:text-indigo-600 transition-colors">
+      <div className="px-3 pb-3 flex-1 flex flex-col text-center">
+        <h3 className="font-medium text-slate-800 line-clamp-2 leading-snug mb-3 group-hover:text-indigo-600 transition-colors text-center w-full">
           {product.title}
         </h3>
-        <div className="mt-auto flex items-center justify-between gap-1.5 sm:gap-2 pt-1 overflow-hidden">
+        <div className="mt-auto flex flex-col items-center gap-1.5 pt-1 overflow-hidden w-full">
           <span 
-            className="font-semibold text-[15px] sm:text-[17px] text-slate-900 tracking-tight truncate"
+            className="font-semibold text-[15px] sm:text-[17px] text-slate-900 tracking-tight text-center truncate w-full"
             title={typeof product.price === 'string' ? product.price : 'Fiyat Yok'}
           >
-            {product.price || 'Fiyat Yok'}
+            {(() => {
+              if (!product.price) return 'Fiyat Yok';
+              const str = String(product.price).trim();
+              let formatted = str
+                .replace(/GBP/gi, '€')
+                .replace(/£/g, '€')
+                .replace(/TRY/gi, '₺')
+                .replace(/TUR/gi, '₺')
+                .replace(/TL/gi, '₺')
+                .replace(/USD/gi, '$')
+                .replace(/EURO/gi, '€')
+                .replace(/EUR/gi, '€');
+              return formatted.replace(/\s+/g, ' ');
+            })()}
           </span>
           <span 
-            className="text-[10px] sm:text-[11px] font-bold px-2 py-1 sm:py-1.5 rounded-full text-white shadow-sm tracking-wider shrink-0 truncate max-w-[45%]"
+            className="text-[10px] sm:text-[11px] font-bold px-2 py-1 text-center rounded-full text-white shadow-sm tracking-wider w-[95px] max-w-[95px] inline-block truncate shrink-0"
             style={{ backgroundColor: storeColor }}
             title={product.source || 'Mağaza'}
           >

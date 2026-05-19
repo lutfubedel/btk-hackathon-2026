@@ -2,7 +2,8 @@ import { Router } from 'express';
 import upload from '../middleware/upload.js';
 import { uploadImage, uploadBase64Image } from '../services/r2Service.js';
 import { searchByImage } from '../services/serpApiService.js';
-import { generateImage, editImage, generateSearchQueryFromImage, chatAndEditImage, checkProductPrompt, checkEditPrompt } from '../services/geminiService.js';
+import { generateImage, editImage, generateSearchQueryFromImage, chatAndEditImage, checkProductPrompt, checkEditPrompt, enrichProductPrompt, enrichInpaintPrompt } from '../services/geminiService.js';
+import { generateImageWithImagen, inpaintImageWithImagen } from '../services/imagenService.js';
 
 const router = Router();
 
@@ -120,30 +121,14 @@ router.post('/generate', async (req, res) => {
     let result;
 
     if (imageBase64) {
-      // Düzenleme isteğini denetle: görseli de göndererek multimodal kontrol yap
-      // Bu sayede "elbise varken kulağlık isteniyor" gibi konu değiştirmeler engellenir
-      const editModeration = await checkEditPrompt(prompt, imageBase64, mimeType || 'image/png');
-      if (!editModeration.isValidEdit) {
-        return res.status(400).json({
-          success: false,
-          error: editModeration.reason,
-        });
-      }
-
       // Mevcut görseli düzenle
       result = await editImage(prompt, imageBase64, mimeType || 'image/png');
     } else {
-      // Sıfırdan üretim öncesinde ürün kontrolü yap
-      const moderation = await checkProductPrompt(prompt);
-      if (!moderation.isProduct) {
-        return res.status(400).json({
-          success: false,
-          error: moderation.reason,
-        });
-      }
+      // Promptu İngilizce ürün tasarım promptuna dönüştür ve zenginleştir
+      const enrichedPrompt = await enrichProductPrompt(prompt);
 
-      // Sıfırdan üret
-      result = await generateImage(prompt);
+      // Sıfırdan üret (Imagen 3 / Vertex AI ile)
+      result = await generateImageWithImagen(enrichedPrompt);
     }
 
     return res.json({
@@ -158,6 +143,43 @@ router.post('/generate', async (req, res) => {
     return res.status(500).json({
       success: false,
       error: error.message || 'Görsel üretimi sırasında bir hata oluştu.',
+    });
+  }
+});
+
+/**
+ * POST /api/inpaint
+ * Imagen ile mask-based inpainting işlemi
+ * Body: { prompt: string, imageBase64: string, maskBase64: string, mimeType?: string }
+ */
+router.post('/inpaint', async (req, res) => {
+  try {
+    const { prompt, imageBase64, maskBase64, mimeType } = req.body;
+
+    if (!prompt || !imageBase64 || !maskBase64) {
+      return res.status(400).json({
+        success: false,
+        error: 'Eksik parametreler: prompt, imageBase64 ve maskBase64 gereklidir.',
+      });
+    }
+
+    // Inpainting promptundaki UI referanslarını temizle ve İngilizceye çevir
+    const enrichedPrompt = await enrichInpaintPrompt(prompt);
+
+    const result = await inpaintImageWithImagen(enrichedPrompt, imageBase64, maskBase64);
+
+    return res.json({
+      success: true,
+      imageBase64: result.imageBase64,
+      mimeType: result.mimeType,
+      text: 'Görsel başarıyla düzenlendi.',
+    });
+
+  } catch (error) {
+    console.error('❌ Inpainting hatası:', error.message);
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Görsel düzenlenirken bir hata oluştu.',
     });
   }
 });
@@ -187,15 +209,7 @@ router.post('/chat-edit', async (req, res) => {
 
     console.log(`\n💬 Chat-Edit isteği: "${message.substring(0, 60)}..."`);
 
-    // Düzenleme isteğini denetle: görseli de göndererek multimodal kontrol yap
-    // Bu sayede "elbise varken kulağlık isteniyor" gibi konu değiştirmeler engellenir
-    const editModeration = await checkEditPrompt(message, imageBase64, mimeType || 'image/png');
-    if (!editModeration.isValidEdit) {
-      return res.status(400).json({
-        success: false,
-        error: editModeration.reason,
-      });
-    }
+    // Moderasyon denetimleri tamamen kaldırılarak tüm istekler doğrudan işlenir
 
     const result = await chatAndEditImage(message, imageBase64, mimeType || 'image/png');
 

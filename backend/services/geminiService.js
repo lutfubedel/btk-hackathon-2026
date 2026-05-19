@@ -106,6 +106,7 @@ export async function checkEditPrompt(editPrompt, imageBase64 = null, mimeType =
   return { isValidEdit, reason };
 }
 
+// [LEGACY] Gemini tabanlı — şu anda Imagen kullanılıyor
 // Gemini API ile sıfırdan görsel üretir
 export async function generateImage(prompt) {
   console.log(`🎨 Gemini görsel üretimi başlatılıyor: "${prompt.substring(0, 60)}..."`);
@@ -120,6 +121,7 @@ export async function generateImage(prompt) {
   return extractImageFromResponse(response);
 }
 
+// [LEGACY] Gemini tabanlı — şu anda Imagen kullanılıyor
 // Gemini API ile mevcut görseli prompt'a göre düzenler
 export async function editImage(prompt, imageBase64, mimeType = 'image/png') {
   console.log(`✏️ Gemini görsel düzenleme başlatılıyor: "${prompt.substring(0, 60)}..."`);
@@ -143,6 +145,7 @@ export async function editImage(prompt, imageBase64, mimeType = 'image/png') {
 }
 
 /**
+ * [LEGACY] Gemini tabanlı — şu anda Imagen kullanılıyor
  * Chatbot entegrasyonu: Kullanıcı mesajına göre görseli düzenler ve
  * hem güncellenmiş görseli hem de Türkçe dostane bir cevap döndürür.
  */
@@ -182,7 +185,7 @@ export async function chatAndEditImage(userMessage, imageBase64, mimeType = 'ima
         {
           role: 'user',
           parts: [
-            { text: `Sen bir AI tasarım asistanısın. Kullanıcı şu isteği yaptı: "${userMessage}". Bu değişikliği uyguladığını belirten, Türkçe, samimi ve 1-2 cümlelik kısa bir mesaj yaz. Emoji kullanabilirsin.` },
+            { text: `Sen bir AI tasarım asistanısın. Kullanıcı şu isteği yaptı: "${userMessage}". Bu değişikliği uyguladığını belirten, Türkçe, samimi ve 1-2 cümlelik kısa bir mesaj yaz. Yanıtında kesinlikle emoji veya herhangi bir simge (simge, ikon, emoji vb.) kullanma. Asla emoji içermemelidir.` },
           ],
         },
       ],
@@ -194,7 +197,7 @@ export async function chatAndEditImage(userMessage, imageBase64, mimeType = 'ima
 
   // Eğer metin üretilemediyse varsayılan bir yanıt ekle
   if (!result.text) {
-    result.text = `✅ "${userMessage}" isteğin uygulandı! Görselin güncellendi.`;
+    result.text = `"${userMessage}" isteğin uygulandı! Görselin güncellendi.`;
   }
 
   return result;
@@ -280,3 +283,100 @@ export async function generateSearchQueryFromImage(imageBase64, mimeType = 'imag
     return ''; // Hata durumunda boş döner
   }
 }
+
+// Türkçe promptu profesyonel İngilizce Imagen ürün promptuna dönüştürür ve zenginleştirir
+export async function enrichProductPrompt(userPrompt) {
+  console.log(`🤖 Prompt zenginleştiriliyor ve çevriliyor: "${userPrompt.substring(0, 60)}..."`);
+  
+  try {
+    const ai = getClient();
+    
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              text: `Sen profesyonel bir yapay zeka görsel tasarım uzmanısın (Prompt Engineer). 
+              Kullanıcının Türkçe olarak girdiği ürün tasarım isteğini analiz et ve onu Imagen 3 modelinin kusursuzca anlayabileceği, son derece detaylı, profesyonel stüdyo kalitesinde bir İngilizce ürün tasarımı promptuna dönüştür.
+              
+              Kurallar:
+              1. Eğer kullanıcı promptta hangi ürünü tasarlamak istediğini açıkça belirtmediyse (örn: sadece "arka planı yeşil, üzerinde kız kulesi olan" dediyse), bunu otomatik olarak bir "sneaker shoe" (spor ayakkabı) tasarımı olarak ele al ve promptu ayakkabı tasarımına uyarla.
+              2. Yerel ve kültürel ifadeleri doğru tercüme et (örn: "Kız Kulesi" -> "Maiden's Tower (historical tower in Istanbul)").
+              3. Promptu profesyonel stüdyo detaylarıyla zenginleştir: "commercial product photography", "studio lighting", "high details", "sharp focus", "clean background", "realistic textures".
+              4. Yanıtında sadece ve sadece bu İngilizce prompt yer alsın. Açıklama, tırnak işareti veya ek metin kesinlikle ekleme.
+              
+              Kullanıcı İsteyi: "${userPrompt}"
+              
+              Zenginleştirilmiş İngilizce Prompt:`
+            }
+          ]
+        }
+      ]
+    });
+
+    const enrichedPrompt = response.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || userPrompt;
+    console.log(`✨ Zenginleştirilmiş Prompt: "${enrichedPrompt}"`);
+    return enrichedPrompt;
+  } catch (error) {
+    console.error('❌ Prompt zenginleştirme hatası:', error.message);
+    return userPrompt; // Hata durumunda orijinal promptu döndür
+  }
+}
+
+// Türkçe inpainting promptundaki UI/çizim referanslarını temizler ve profesyonel İngilizce açıklamaya dönüştürür
+export async function enrichInpaintPrompt(userPrompt) {
+  console.log(`🤖 Inpainting promptu zenginleştiriliyor: "${userPrompt.substring(0, 60)}..."`);
+  
+  try {
+    const ai = getClient();
+    
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              text: `Sen profesyonel bir yapay zeka görsel tasarım uzmanısın (Prompt Engineer).
+              Sana kullanıcının bir ürün görseli üzerinde fırçayla boyadığı/seçtiği alana yeni bir şey eklemek veya mevcut bir şeyi değiştirmek için yazdığı Türkçe istek verilecek.
+              
+              Görevin:
+              1. Kullanıcının Türkçe isteğindeki "yuvarlak içine aldığım", "boyadığım", "seçtiğim" gibi çizim/UI yönergelerini tamamen TEMİZLE.
+              2. Kullanıcının o alanda görmek istediği NİHAİ nesneyi/özelliği tespit et.
+              3. Bu nihai nesneyi/özelliği Imagen 3 modelinin kusursuzca anlayabileceği profesyonel stüdyo kalitesinde detaylı bir İngilizce prompta dönüştür.
+              
+              KRİTİK DİFÜZYON KURALLARI (DOKUNULMAZ):
+              - SADECE NİHAİ NESNEYİ TANIMLA: Prompt, seçili alanda **sadece görünmesini istediğimiz yeni nesneyi** tasvir etmelidir.
+              - ASLA İŞLEM TALİMATI YAZMA: Prompt içerisinde asla "replace" (yerine koy), "erase" (sil), "delete" (yok et), "instead of" (yerine) gibi eylem kelimeleri **kullanılmamalıdır**.
+              - ASLA ESKİ NESNEYİ ANMA: Prompt içerisinde silinecek/değişecek olan eski nesnenin veya eski yazının adı (örn: "Rammstein" veya "gold") **kesinlikle geçmemelidir**! Çünkü difüzyon modelleri olumsuzlama anlamaz ve eski nesnenin adını görünce onu yok etmek yerine tekrar çizmeye çalışır ya da kafası karışıp hiçbir değişiklik yapmaz.
+              - METİN YAZDIRMA (TEXT WRITING): Eğer kullanıcı alana bir metin yazdırmak istiyorsa, promptta yazılacak metni tırnak içinde büyük harflerle tam haliyle belirt (örn: reads exactly "YASA FENERBAHCE" in uppercase). Metnin son derece temiz, okunaklı, sans-serif fontta ve hatasız (no typos, sharp characters) olacağını vurgula.
+              
+              Doğru Örnekler:
+              - "seçili alan içerisindeki rammstein yazısını silip bunun yerine yaşa fenerbahçe yaz" -> "A clean, sharp white printed text that reads exactly 'YASA FENERBAHCE' in uppercase bold sans-serif font, highly detailed, photorealistic"
+              - "yuvarlak içerisine aldığım alana bir beyaz haç çiz" -> "A clean, sharp white cross mark, highly detailed, photorealistic"
+              - "seçtiğim alanın içerisine küçük bir siyah kedi koy" -> "A small, cute black cat, realistic textures, highly detailed, photorealistic"
+              - "boyadığım yeri deri kaplama yap" -> "Premium leather texture, fine stitching, highly detailed realistic leather"
+              - "altın rengi logoyu mavi yap" -> "A rich, vibrant solid blue color with premium metallic texture"
+              
+              Yanıtında sadece ve sadece bu İngilizce açıklayıcı prompt yer alsın. Açıklama, tırnak işareti veya ek metin kesinlikle ekleme.
+              
+              Kullanıcı İsteyi: "${userPrompt}"
+              
+              Zenginleştirilmiş İngilizce Inpainting Prompt:`
+            }
+          ]
+        }
+      ]
+    });
+
+    const enrichedPrompt = response.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || userPrompt;
+    console.log(`✨ Zenginleştirilmiş Inpainting Prompt: "${enrichedPrompt}"`);
+    return enrichedPrompt;
+  } catch (error) {
+    console.error('❌ Inpainting prompt zenginleştirme hatası:', error.message);
+    return userPrompt;
+  }
+}
+

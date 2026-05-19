@@ -9,6 +9,7 @@ import { Toaster, toast } from 'react-hot-toast';
 
 export default function App() {
   const navigate = useNavigate();
+  const API_URL = import.meta.env.VITE_API_URL || '';
   
   // Paylaşılan Veriler
   const [searchResults, setSearchResults] = useState(null);
@@ -55,7 +56,7 @@ export default function App() {
       const formData = new FormData();
       formData.append('image', file);
 
-      const response = await fetch(import.meta.env.VITE_API_URL + '/api/search', {
+      const response = await fetch(API_URL + '/api/search', {
         method: 'POST',
         body: formData,
       });
@@ -86,7 +87,7 @@ export default function App() {
     setGeneratedImage(fullBase64Url); // State senkronizasyonu için
 
     try {
-      const response = await fetch(import.meta.env.VITE_API_URL + '/api/search-by-base64', {
+      const response = await fetch(API_URL + '/api/search-by-base64', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
