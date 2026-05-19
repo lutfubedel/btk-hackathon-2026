@@ -77,7 +77,7 @@ export default function StartScreen({ onNavigateToPrompt, onUploadToEdit }) {
       </div>
 
       <div className="relative z-10 text-center mb-10">
-        <h2 className="text-[2.5rem] font-extrabold mb-2.5 tracking-[-0.04em] text-[#1a1a2e] sm:text-[1.75rem]">
+        <h2 className="text-[3.25rem] font-extrabold mb-2.5 tracking-[-0.04em] text-[#1a1a2e] sm:text-[2.25rem] leading-[1.15]">
           <span className="gradient-text">Görselini Tasarla</span>, En Uygun Eşleşmeyi Yakala
         </h2>
         <p className="text-[1.1rem] text-[#555770] max-w-[520px] mx-auto leading-relaxed">Bulmak İstediğiniz Görseli Tasarlayın, Benzer Ürünleri Anında Keşfedin</p>
@@ -85,11 +85,10 @@ export default function StartScreen({ onNavigateToPrompt, onUploadToEdit }) {
 
       {/* Drop Zone */}
       <div
-        className={`relative z-10 backdrop-blur-md border-[2.5px] border-dashed rounded-[24px] p-14 sm:p-10 text-center cursor-pointer transition-all duration-250 bg-linear-to-br from-[#ff5722] to-[#e53935] shadow-md group ${isDragging ? 'border-white shadow-[0_0_0_4px_rgba(255,87,34,0.2),0_10px_30px_rgba(255,87,34,0.1)]' : 'border-white/50 hover:border-white hover:shadow-[0_0_0_4px_rgba(255,87,34,0.2),0_10px_30px_rgba(255,87,34,0.1)]'}`}
+        className={`relative z-10 backdrop-blur-md border-[2.5px] border-dashed rounded-[24px] p-14 sm:p-10 text-center transition-all duration-250 bg-linear-to-br from-[#ff5722] to-[#e53935] shadow-md group ${isDragging ? 'border-white shadow-[0_0_0_4px_rgba(255,87,34,0.2),0_10px_30px_rgba(255,87,34,0.1)]' : 'border-white/50 hover:border-white hover:shadow-[0_0_0_4px_rgba(255,87,34,0.2),0_10px_30px_rgba(255,87,34,0.1)]'}`}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
-        onClick={() => fileInputRef.current?.click()}
         id="drop-zone"
       >
         <div className="relative z-10">

@@ -1,8 +1,26 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
+import fs from 'fs';
 
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Render "Secret File" veya Lokal dosya için otomatik yol belirleme
+const renderSecretPath = '/etc/secrets/service-account.json';
+const localSecretPath = path.join(__dirname, 'service-account.json');
+
+if (fs.existsSync(renderSecretPath)) {
+  process.env.GOOGLE_APPLICATION_CREDENTIALS = renderSecretPath;
+  console.log(`[AUTH] Render secret kullanılıyor: ${renderSecretPath}`);
+} else if (fs.existsSync(localSecretPath)) {
+  process.env.GOOGLE_APPLICATION_CREDENTIALS = localSecretPath;
+  console.log(`[AUTH] Lokal servis hesabı kullanılıyor: ${localSecretPath}`);
+} else {
+  console.warn(`[AUTH] UYARI: service-account.json dosyası bulunamadı!`);
+}
 
 import express from 'express';
 import cors from 'cors';

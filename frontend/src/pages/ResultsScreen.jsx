@@ -58,9 +58,8 @@ export default function ResultsScreen({ uploadedImage, searchResults, onNewSearc
         <div className="w-full flex flex-col max-w-md relative z-10">
            <button 
             onClick={onEditImage}
-            className="w-full bg-orange-500 hover:bg-orange-600 text-white backdrop-blur-2xl px-4 py-3.5 rounded-2xl text-sm font-medium transition-all shadow-lg flex items-center justify-center gap-2 hover:-translate-y-0.5 active:translate-y-0"
+            className="w-full bg-orange-500 hover:bg-orange-600 text-white backdrop-blur-2xl px-4 py-3.5 rounded-2xl text-sm font-medium transition-all shadow-lg flex items-center justify-center hover:-translate-y-0.5 active:translate-y-0"
           >
-            <Sparkles className="w-4 h-4 text-white animate-pulse" />
             <span>Görseli Düzenle</span>
           </button>
         </div>

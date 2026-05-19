@@ -2,7 +2,7 @@ import { Router } from 'express';
 import upload from '../middleware/upload.js';
 import { uploadImage, uploadBase64Image } from '../services/r2Service.js';
 import { searchByImage } from '../services/serpApiService.js';
-import { generateImage, editImage, generateSearchQueryFromImage, chatAndEditImage, checkProductPrompt, checkEditPrompt, enrichProductPrompt, enrichInpaintPrompt, generatePersonalizedProductPreview } from '../services/geminiService.js';
+import { generateImage, editImage, generateSearchQueryFromImage, chatAndEditImage, checkProductPrompt, checkSafetyAndProductPrompt, checkEditPrompt, enrichProductPrompt, enrichInpaintPrompt, generatePersonalizedProductPreview } from '../services/geminiService.js';
 import { generateImageWithImagen, inpaintImageWithImagen } from '../services/imagenService.js';
 
 const router = Router();
@@ -118,6 +118,21 @@ router.post('/generate', async (req, res) => {
 
     console.log(`\n🎨 Görsel üretim isteği: "${prompt.substring(0, 60)}..."`);
 
+    // Orijinal prompt üzerinde Güvenlik ve Etik kontrolü uygula
+    const moderation = await checkSafetyAndProductPrompt(prompt);
+    if (moderation.status === 'BLOCKED') {
+      return res.status(400).json({
+        success: false,
+        error: moderation.reason
+      });
+    }
+    if (moderation.status === 'INVALID') {
+      return res.status(400).json({
+        success: false,
+        error: moderation.reason
+      });
+    }
+
     let result;
 
     if (imageBase64) {
@@ -160,6 +175,21 @@ router.post('/inpaint', async (req, res) => {
       return res.status(400).json({
         success: false,
         error: 'Eksik parametreler: prompt, imageBase64 ve maskBase64 gereklidir.',
+      });
+    }
+
+    // Orijinal prompt üzerinde Güvenlik ve Etik kontrolü uygula
+    const moderation = await checkSafetyAndProductPrompt(prompt);
+    if (moderation.status === 'BLOCKED') {
+      return res.status(400).json({
+        success: false,
+        error: moderation.reason
+      });
+    }
+    if (moderation.status === 'INVALID') {
+      return res.status(400).json({
+        success: false,
+        error: moderation.reason
       });
     }
 
@@ -209,7 +239,20 @@ router.post('/chat-edit', async (req, res) => {
 
     console.log(`\n💬 Chat-Edit isteği: "${message.substring(0, 60)}..."`);
 
-    // Moderasyon denetimleri tamamen kaldırılarak tüm istekler doğrudan işlenir
+    // Orijinal prompt üzerinde Güvenlik ve Etik kontrolü uygula
+    const moderation = await checkSafetyAndProductPrompt(message);
+    if (moderation.status === 'BLOCKED') {
+      return res.status(400).json({
+        success: false,
+        error: moderation.reason
+      });
+    }
+    if (moderation.status === 'INVALID') {
+      return res.status(400).json({
+        success: false,
+        error: moderation.reason
+      });
+    }
 
     const result = await chatAndEditImage(message, imageBase64, mimeType || 'image/png');
 

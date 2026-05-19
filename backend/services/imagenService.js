@@ -1,5 +1,6 @@
 import { GoogleGenAI } from '@google/genai';
 import { GoogleAuth } from 'google-auth-library';
+import { checkSafetyAndProductPrompt } from './geminiService.js';
 
 let aiClient = null;
 
@@ -148,6 +149,12 @@ async function callVertexAIWithRetry(prompt, imageBase64 = null, maskBase64 = nu
 // Sıfırdan görsel üretir (Imagen 3 / Vertex AI - Dayanıklı & Yedekli)
 export async function generateImageWithImagen(prompt) {
   console.log(`\n🎨 Vertex AI Imagen görsel üretimi başlatılıyor: "${prompt.substring(0, 60)}..."`);
+  
+  const moderation = await checkSafetyAndProductPrompt(prompt);
+  if (moderation.status !== 'VALID') {
+    throw new Error(moderation.reason);
+  }
+
   const imageBase64 = await callVertexAIWithRetry(prompt, null, null, false);
   return { imageBase64, mimeType: 'image/png' };
 }
@@ -155,6 +162,12 @@ export async function generateImageWithImagen(prompt) {
 // Mask-based inpainting (Vertex AI - Dayanıklı & Yedekli)
 export async function inpaintImageWithImagen(prompt, imageBase64, maskBase64) {
   console.log(`\n🖌️ Imagen bölgesel düzenleme (Inpainting) başlatılıyor: "${prompt.substring(0, 60)}..."`);
+  
+  const moderation = await checkSafetyAndProductPrompt(prompt);
+  if (moderation.status !== 'VALID') {
+    throw new Error(moderation.reason);
+  }
+
   const resultBase64 = await callVertexAIWithRetry(prompt, imageBase64, maskBase64, true);
   return { imageBase64: resultBase64, mimeType: 'image/png' };
 }

@@ -309,6 +309,17 @@ export default function PromptScreen({
     }
   };
 
+  const handleRegenerateOrApply = () => {
+    if (personalizedPreview) {
+      setCurrentImage(personalizedPreview);
+      setUserPhotoPreview(null);
+      setPersonalizedPreview(null);
+      toast.success('Kişisel önizleme ana görsele uygulandı!');
+    } else {
+      generatePersonalizedPreview();
+    }
+  };
+
   const handleInpaintSubmit = async () => {
     if (!maskPrompt.trim() || isGenerating || isPersonalizing) return;
 
@@ -750,7 +761,7 @@ export default function PromptScreen({
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-9 h-9 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center shrink-0">
-                    <Sparkles className="w-4 h-4" />
+                    <ScanEye className="w-4 h-4" />
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-slate-800">Kişisel Önizleme</p>
@@ -773,7 +784,8 @@ export default function PromptScreen({
                 <button
                   type="button"
                   onClick={() => setIsPersonalizedPreviewZoomed(true)}
-                  className="relative w-full aspect-square rounded-2xl overflow-hidden bg-slate-100 border border-slate-100 cursor-zoom-in group/preview"
+                  className="relative w-full rounded-2xl overflow-hidden bg-slate-100 border border-slate-100 cursor-zoom-in group/preview"
+                  style={{ aspectRatio: imageAspectRatio }}
                 >
                   <img
                     src={personalizedPreview}
@@ -814,7 +826,7 @@ export default function PromptScreen({
               {userPhotoPreview && (
                 <button
                   type="button"
-                  onClick={() => generatePersonalizedPreview()}
+                  onClick={handleRegenerateOrApply}
                   disabled={isGenerating || isChatLoading || isPersonalizing}
                   className="w-full bg-white border border-slate-200 text-slate-700 hover:text-orange-600 hover:border-orange-300 py-3 rounded-2xl text-sm font-semibold transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
                 >
@@ -823,7 +835,7 @@ export default function PromptScreen({
                   ) : (
                     <RefreshCw className="w-4 h-4" />
                   )}
-                  Yeniden Oluştur
+                  Önizlemeyi Oluştur
                 </button>
               )}
             </div>
@@ -856,8 +868,7 @@ export default function PromptScreen({
               </div>
 
               {/* Fırça boyama ipucu */}
-              <div className="bg-orange-50/70 border border-orange-100/80 text-orange-800 text-xs p-3 rounded-2xl leading-normal flex items-start gap-2 shadow-xs">
-                <span className="text-base leading-none">💡</span>
+              <div className="bg-orange-50/70 border border-orange-100/80 text-orange-800 text-xs p-3 rounded-2xl leading-normal shadow-xs">
                 <div>
                   <strong className="font-semibold block mb-0.5">Önemli İpucu:</strong> 
                   Değişiklik yapmak istediğiniz alanın etrafına boş bir daire çizmek yerine, <strong>o alanın tamamını fırça ile tamamen boyayarak doldurun.</strong> Aksi takdirde yapay zeka sadece çizdiğiniz çizginin üzerine bir şeyler eklemeye çalışır ve görsel değişmez.
@@ -875,9 +886,9 @@ export default function PromptScreen({
                 <button
                   onClick={handleInpaintSubmit}
                   disabled={!maskPrompt.trim() || isPersonalizing}
-                  className="bg-slate-900 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-slate-800 disabled:opacity-50 cursor-pointer flex items-center gap-2 shadow-sm transition-all active:scale-95"
+                  className="bg-orange-500 hover:bg-orange-600 text-white p-3 rounded-xl transition-all disabled:opacity-40 shadow-sm hover:shadow-md cursor-pointer flex items-center justify-center active:scale-95 shrink-0"
                 >
-                  Uygula
+                  <Send className="w-4 h-4" />
                 </button>
               </div>
             </div>

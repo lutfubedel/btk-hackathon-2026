@@ -14,48 +14,80 @@ function getClient() {
   return aiClient;
 }
 
-const MODERATION_PROMPT = `Sen bir içerik denetleme asistanısın. Kullanıcının aşağıdaki promptunu analiz et ve
-yalnızca "EVET" veya "HAYIR" ile yanıtla.
+const SAFETY_AND_MODERATION_PROMPT = `Sen bir güvenlik ve içerik denetleme asistanısın. Kullanıcının girdiği ürün tasarımı promptunu analiz et ve kurallara göre sınıflandır.
 
-Soru: Bu prompt, internette satılabilecek somut bir ürünün (örneğin: ayakkabı, kalem, elbise,
-çanta, telefon kılıfı, kulaklık, saat, kitap, mobilya, elektronik ürün vb.) resmi üretmek
-için mi kullanılıyor?
+Görevin iki seviyeli kontrol uygulamaktır:
 
-Aşağıdaki kategoriler için HAYIR de:
-- Doğa (dağ, orman, nehir, gökyüzü, gün batımı vb.)
-- Hayvanlar (kedi, köpek, kuş, balık vb.)
-- İnsanlar veya insan yüzleri
-- Soyut sanat
-- Manzara fotoğrafları
-- Fantastik veya mitolojik varlıklar
-- Bitkiler veya çiçekler (ürün olarak satılmıyorsa)
+1. SEVİYE: GÜVENLİK VE ETİK KONTROLÜ
+Aşağıdaki durumlarda yanıt olarak kesinlikle "BLOCKED" yaz:
+- Irkçılık, kölelik (örn: "köle", "slave", "african slave"), insan ticareti veya ayrımcılık içeren istekler.
+- Hakaret, nefret söylemi, şiddet, silahlar veya saldırganlık içeren temalar.
+- Pornografik, cinsel veya aşırı hassas etik dışı istekler.
+- Tarihsel veya güncel insani acıları alaya alan ya da istismar eden istekler.
+
+2. SEVİYE: ÜRÜN ODAKLILIK KONTROLÜ
+Eğer prompt 1. Seviye kurallarını ihlal etmiyorsa, e-ticarette satılabilecek somut bir tüketici ürünü (örn: ayakkabı, çanta, elbise, saat, telefon kılıfı, kulaklık, mobilya, defter vb.) üretmek için mi kullanılıyor?
+Aşağıdaki kategoriler için kesinlikle "INVALID" yaz:
+- Doğa (dağ, orman, nehir, gökyüzü vb.)
+- Hayvanlar (kedi, köpek vb.)
+- İnsanlar, insan yüzleri veya insan vücutları (üründen bağımsız olarak)
+- Soyut sanat veya sadece manzara fotoğrafları
+- Yemekler, yiyecekler, meyveler, sebzeler veya içecekler
+
+Eğer prompt yukarıdaki iki filtreyi de başarıyla geçiyorsa (yani güvenli, etik ve satılabilir somut bir ürün tasarımıysa) yanıt olarak sadece "VALID" yaz.
 
 Kullanıcı promptu:
 "{user_prompt}"
 
-Yanıt (sadece EVET veya HAYIR):`;
+Yanıt (Sadece BLOCKED, INVALID veya VALID kelimelerinden birini yaz):`;
 
-export async function checkProductPrompt(prompt) {
-  console.log(`🔍 Prompt kontrol ediliyor: "${prompt.substring(0, 60)}..."`);
+export async function checkSafetyAndProductPrompt(prompt) {
+  console.log(`🔍 Güvenlik ve Ürün Kontrolü Yapılıyor: "${prompt.substring(0, 60)}..."`);
   
-  const ai = getClient();
-  const moderationText = MODERATION_PROMPT.replace('{user_prompt}', prompt);
+  try {
+    const ai = getClient();
+    const moderationText = SAFETY_AND_MODERATION_PROMPT.replace('{user_prompt}', prompt);
 
-  const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash',
-    contents: [moderationText],
-  });
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: [moderationText],
+    });
 
-  const answer = response.candidates?.[0]?.content?.parts?.[0]?.text?.trim().toUpperCase() || '';
-  const isProduct = answer.startsWith('EVET');
+    const answer = response.candidates?.[0]?.content?.parts?.[0]?.text?.trim().toUpperCase() || '';
+    
+    if (answer.includes('BLOCKED')) {
+      console.warn('❌ GÜVENLİK İHLALİ: İstek güvenlik filtrelerine takıldı.');
+      return { 
+        status: 'BLOCKED', 
+        reason: 'Bu tarz istekler VISEARCH AI kısıtlamalarından dolayı kabul edilmez. Lütfen başka bir istekte bulununuz' 
+      };
+    }
 
-  const reason = isProduct
-    ? 'Prompt ürün ile ilgili, resim üretiliyor...'
-    : 'Hata: Yalnızca internette satılabilecek ürünlerin resimleri üretilebilir. ';
+    if (answer.includes('INVALID')) {
+      console.warn('⚠️ GEÇERSİZ ÜRÜN: İstek ürün dışı bir kategori içeriyor.');
+      return { 
+        status: 'INVALID', 
+        reason: 'Sadece internet üzerinden satın alınabilecek somut ürünlerin (giysi, çanta, aksesuar, saat, ayakkabı, teknoloji ürünü vb.) görsel üretimi ve düzenlemesi desteklenmektedir. Hayvan, insan, doğa manzarası, soyut sanat veya yemek gibi içerikler üretilemez.' 
+      };
+    }
 
-  console.log(reason);
+    console.log('✅ GEÇERLİ: İstek güvenli ve ürün odaklı.');
+    return { status: 'VALID', reason: 'İstek geçerli.' };
 
-  return { isProduct, reason };
+  } catch (error) {
+    console.error('❌ Moderasyon kontrol hatası:', error.message);
+    // Güvenlik riski oluşmaması için hata durumunda varsayılan olarak engelleme yapalım
+    return { status: 'VALID', reason: 'İstek geçerli.' };
+  }
+}
+
+// Geriye dönük uyumluluk için eski fonksiyon adını da yönlendiriyoruz
+export async function checkProductPrompt(prompt) {
+  const check = await checkSafetyAndProductPrompt(prompt);
+  return { 
+    isProduct: check.status === 'VALID', 
+    reason: check.reason 
+  };
 }
 
 const EDIT_MODERATION_PROMPT = `Sen bir içerik denetleme asistanısın. Sana bir ürün görseli ve kullanıcının bu görsel üzerinde yapmak istediği düzenleme isteği verilecek.
